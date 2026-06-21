@@ -1,0 +1,559 @@
+{
+  "teachers": [
+    {
+      "id": "teacher_001",
+      "name": "John Doe",
+      "email": "john.doe@institute.com",
+      "role": "Teacher"
+    },
+    {
+      "id": "teacher_002",
+      "name": "Jane Smith",
+      "email": "jane.smith@institute.com",
+      "role": "Teacher"
+    },
+    {
+      "id": "teacher_003",
+      "name": "Michael Johnson",
+      "email": "michael.johnson@institute.com",
+      "role": "Teacher"
+    },
+    {
+      "id": "teacher_004",
+      "name": "Emily Brown",
+      "email": "emily.brown@institute.com",
+      "role": "Teacher"
+    },
+    {
+      "id": "teacher_005",
+      "name": "David Wilson",
+      "email": "david.wilson@institute.com",
+      "role": "Teacher"
+    }
+  ],
+  "classes": [
+    {
+      "id": "class_001",
+      "name": "Advanced JavaScript",
+      "startDate": "2024-01-15",
+      "endDate": "2024-12-31",
+      "fees": 1500,
+      "teacherName": "John Doe",
+      "features": [
+        {
+          "id": "feature_001",
+          "name": "ES6+ Fundamentals",
+          "startDate": "2024-01-15",
+          "endDate": "2024-02-28",
+          "fees": 300,
+          "teacherName": "Jane Smith",
+          "createdAt": "2024-01-01"
+        },
+        {
+          "id": "feature_002",
+          "name": "Async Programming",
+          "startDate": "2024-03-01",
+          "endDate": "2024-04-30",
+          "fees": 350,
+          "teacherName": "John Doe",
+          "createdAt": "2024-01-05"
+        },
+        {
+          "id": "feature_003",
+          "name": "DOM Manipulation",
+          "startDate": "2024-05-01",
+          "endDate": "2024-06-30",
+          "fees": 250,
+          "teacherName": "Michael Johnson",
+          "createdAt": "2024-01-10"
+        }
+      ],
+      "createdBy": "user_001",
+      "createdAt": "2024-01-01",
+      "updatedAt": "2024-01-10"
+    },
+    {
+      "id": "class_002",
+      "name": "React Mastery Course",
+      "startDate": "2024-02-01",
+      "endDate": "2024-11-30",
+      "fees": 2000,
+      "teacherName": "Jane Smith",
+      "features": [
+        {
+          "id": "feature_004",
+          "name": "React Hooks Deep Dive",
+          "startDate": "2024-02-01",
+          "endDate": "2024-03-31",
+          "fees": 400,
+          "teacherName": "Jane Smith",
+          "createdAt": "2024-01-15"
+        },
+        {
+          "id": "feature_005",
+          "name": "State Management with Redux",
+          "startDate": "2024-04-01",
+          "endDate": "2024-05-31",
+          "fees": 500,
+          "teacherName": "Michael Johnson",
+          "createdAt": "2024-01-20"
+        },
+        {
+          "id": "feature_006",
+          "name": "Next.js & Server Components",
+          "startDate": "2024-06-01",
+          "endDate": "2024-07-31",
+          "fees": 450,
+          "teacherName": "Emily Brown",
+          "createdAt": "2024-01-25"
+        },
+        {
+          "id": "feature_007",
+          "name": "Testing & Performance",
+          "startDate": "2024-08-01",
+          "endDate": "2024-09-30",
+          "fees": 400,
+          "teacherName": "David Wilson",
+          "createdAt": "2024-02-01"
+        }
+      ],
+      "createdBy": "user_001",
+      "createdAt": "2024-01-15",
+      "updatedAt": "2024-02-05"
+    },
+    {
+      "id": "class_003",
+      "name": "Full Stack Web Development",
+      "startDate": "2024-03-01",
+      "endDate": "2025-02-28",
+      "fees": 3500,
+      "teacherName": "Michael Johnson",
+      "features": [
+        {
+          "id": "feature_008",
+          "name": "Frontend Fundamentals",
+          "startDate": "2024-03-01",
+          "endDate": "2024-05-31",
+          "fees": 700,
+          "teacherName": "Jane Smith",
+          "createdAt": "2024-02-01"
+        },
+        {
+          "id": "feature_009",
+          "name": "Backend Basics with Node.js",
+          "startDate": "2024-06-01",
+          "endDate": "2024-08-31",
+          "fees": 800,
+          "teacherName": "John Doe",
+          "createdAt": "2024-02-05"
+        },
+        {
+          "id": "feature_010",
+          "name": "Database Design & SQL",
+          "startDate": "2024-09-01",
+          "endDate": "2024-10-31",
+          "fees": 600,
+          "teacherName": "Michael Johnson",
+          "createdAt": "2024-02-10"
+        },
+        {
+          "id": "feature_011",
+          "name": "DevOps & Deployment",
+          "startDate": "2024-11-01",
+          "endDate": "2025-01-31",
+          "fees": 750,
+          "teacherName": "David Wilson",
+          "createdAt": "2024-02-15"
+        },
+        {
+          "id": "feature_012",
+          "name": "Real-world Project",
+          "startDate": "2025-02-01",
+          "endDate": "2025-02-28",
+          "fees": 650,
+          "teacherName": "Emily Brown",
+          "createdAt": "2024-02-20"
+        }
+      ],
+      "createdBy": "user_001",
+      "createdAt": "2024-02-01",
+      "updatedAt": "2024-02-20"
+    },
+    {
+      "id": "class_004",
+      "name": "Python for Data Science",
+      "startDate": "2024-04-01",
+      "endDate": "2024-09-30",
+      "fees": 1800,
+      "teacherName": "Emily Brown",
+      "features": [
+        {
+          "id": "feature_013",
+          "name": "Python Basics & Libraries",
+          "startDate": "2024-04-01",
+          "endDate": "2024-05-31",
+          "fees": 400,
+          "teacherName": "Emily Brown",
+          "createdAt": "2024-03-01"
+        },
+        {
+          "id": "feature_014",
+          "name": "Data Analysis with Pandas",
+          "startDate": "2024-06-01",
+          "endDate": "2024-07-31",
+          "fees": 500,
+          "teacherName": "David Wilson",
+          "createdAt": "2024-03-05"
+        },
+        {
+          "id": "feature_015",
+          "name": "Data Visualization",
+          "startDate": "2024-08-01",
+          "endDate": "2024-09-30",
+          "fees": 450,
+          "teacherName": "John Doe",
+          "createdAt": "2024-03-10"
+        }
+      ],
+      "createdBy": "user_002",
+      "createdAt": "2024-03-01",
+      "updatedAt": "2024-03-10"
+    },
+    {
+      "id": "class_005",
+      "name": "TypeScript Essentials",
+      "startDate": "2024-05-01",
+      "endDate": "2024-08-31",
+      "fees": 1200,
+      "teacherName": "David Wilson",
+      "features": [
+        {
+          "id": "feature_016",
+          "name": "TypeScript Basics",
+          "startDate": "2024-05-01",
+          "endDate": "2024-06-15",
+          "fees": 350,
+          "teacherName": "David Wilson",
+          "createdAt": "2024-04-01"
+        },
+        {
+          "id": "feature_017",
+          "name": "Advanced Types & Generics",
+          "startDate": "2024-06-16",
+          "endDate": "2024-08-15",
+          "fees": 450,
+          "teacherName": "Michael Johnson",
+          "createdAt": "2024-04-05"
+        },
+        {
+          "id": "feature_018",
+          "name": "TypeScript with React",
+          "startDate": "2024-08-16",
+          "endDate": "2024-08-31",
+          "fees": 400,
+          "teacherName": "Jane Smith",
+          "createdAt": "2024-04-10"
+        }
+      ],
+      "createdBy": "user_002",
+      "createdAt": "2024-04-01",
+      "updatedAt": "2024-04-10"
+    }
+  ],
+  "sampleFormData": {
+    "basicClass": {
+      "name": "Web Design Fundamentals",
+      "startDate": "2024-06-01",
+      "endDate": "2024-09-30",
+      "fees": 900,
+      "teacherName": "Jane Smith",
+      "features": [
+        {
+          "name": "HTML & CSS Basics",
+          "startDate": "2024-06-01",
+          "endDate": "2024-07-15",
+          "fees": 200,
+          "teacherName": "John Doe"
+        },
+        {
+          "name": "Responsive Design",
+          "startDate": "2024-07-16",
+          "endDate": "2024-08-31",
+          "fees": 250,
+          "teacherName": "Jane Smith"
+        },
+        {
+          "name": "Design Tools & Prototyping",
+          "startDate": "2024-09-01",
+          "endDate": "2024-09-30",
+          "fees": 300,
+          "teacherName": "Emily Brown"
+        }
+      ]
+    },
+    "minimalClass": {
+      "name": "Git & Version Control",
+      "startDate": "2024-07-01",
+      "endDate": "2024-08-31",
+      "fees": 500,
+      "teacherName": "Michael Johnson",
+      "features": []
+    },
+    "extendedClass": {
+      "name": "Mobile App Development with React Native",
+      "startDate": "2024-09-01",
+      "endDate": "2025-03-31",
+      "fees": 4000,
+      "teacherName": "David Wilson",
+      "features": [
+        {
+          "name": "React Native Basics",
+          "startDate": "2024-09-01",
+          "endDate": "2024-10-31",
+          "fees": 600,
+          "teacherName": "David Wilson"
+        },
+        {
+          "name": "Native APIs & Device Access",
+          "startDate": "2024-11-01",
+          "endDate": "2024-12-31",
+          "fees": 650,
+          "teacherName": "Michael Johnson"
+        },
+        {
+          "name": "Navigation & State Management",
+          "startDate": "2025-01-01",
+          "endDate": "2025-01-31",
+          "fees": 600,
+          "teacherName": "Jane Smith"
+        },
+        {
+          "name": "Testing & Deployment",
+          "startDate": "2025-02-01",
+          "endDate": "2025-02-28",
+          "fees": 550,
+          "teacherName": "Emily Brown"
+        },
+        {
+          "name": "Performance & Optimization",
+          "startDate": "2025-03-01",
+          "endDate": "2025-03-31",
+          "fees": 600,
+          "teacherName": "John Doe"
+        }
+      ]
+    }
+  },
+  "testScenarios": {
+    "scenario1": {
+      "description": "Create a simple class without features",
+      "data": {
+        "name": "Introduction to Git",
+        "startDate": "2024-06-15",
+        "endDate": "2024-07-15",
+        "fees": 350,
+        "teacherName": "John Doe",
+        "features": []
+      },
+      "expectedResult": "Class created successfully with 0 features"
+    },
+    "scenario2": {
+      "description": "Create a class with 2 features",
+      "data": {
+        "name": "JavaScript Bootcamp",
+        "startDate": "2024-07-01",
+        "endDate": "2024-10-31",
+        "fees": 1500,
+        "teacherName": "Jane Smith",
+        "features": [
+          {
+            "name": "Variables & Data Types",
+            "startDate": "2024-07-01",
+            "endDate": "2024-07-31",
+            "fees": 400,
+            "teacherName": "John Doe"
+          },
+          {
+            "name": "Functions & Closures",
+            "startDate": "2024-08-01",
+            "endDate": "2024-10-31",
+            "fees": 700,
+            "teacherName": "Michael Johnson"
+          }
+        ]
+      },
+      "expectedResult": "Class created successfully with 2 features"
+    },
+    "scenario3": {
+      "description": "Create a comprehensive class with 4 features",
+      "data": {
+        "name": "UI/UX Design Masterclass",
+        "startDate": "2024-08-01",
+        "endDate": "2025-01-31",
+        "fees": 2500,
+        "teacherName": "Emily Brown",
+        "features": [
+          {
+            "name": "Design Principles",
+            "startDate": "2024-08-01",
+            "endDate": "2024-09-15",
+            "fees": 500,
+            "teacherName": "Emily Brown"
+          },
+          {
+            "name": "Figma & Design Tools",
+            "startDate": "2024-09-16",
+            "endDate": "2024-10-31",
+            "fees": 550,
+            "teacherName": "Jane Smith"
+          },
+          {
+            "name": "User Research & Testing",
+            "startDate": "2024-11-01",
+            "endDate": "2024-12-15",
+            "fees": 600,
+            "teacherName": "Michael Johnson"
+          },
+          {
+            "name": "Portfolio & Real Projects",
+            "startDate": "2024-12-16",
+            "endDate": "2025-01-31",
+            "fees": 500,
+            "teacherName": "David Wilson"
+          }
+        ]
+      },
+      "expectedResult": "Class created successfully with 4 features"
+    },
+    "scenario4": {
+      "description": "Test validation - invalid date range",
+      "data": {
+        "name": "Invalid Date Class",
+        "startDate": "2024-12-31",
+        "endDate": "2024-01-01",
+        "fees": 1000,
+        "teacherName": "John Doe",
+        "features": []
+      },
+      "expectedResult": "Error: Start date must be before end date"
+    },
+    "scenario5": {
+      "description": "Test validation - missing required field",
+      "data": {
+        "name": "",
+        "startDate": "2024-09-01",
+        "endDate": "2024-12-31",
+        "fees": 1000,
+        "teacherName": "Jane Smith",
+        "features": []
+      },
+      "expectedResult": "Error: Please fill all required fields"
+    }
+  },
+  "apiTestCalls": {
+    "createClassExample": {
+      "method": "POST",
+      "endpoint": "/api/class/add",
+      "headers": {
+        "Authorization": "Bearer YOUR_JWT_TOKEN",
+        "Content-Type": "application/json"
+      },
+      "body": {
+        "name": "Advanced JavaScript",
+        "startDate": "2024-01-15",
+        "endDate": "2024-12-31",
+        "fees": 1500,
+        "teacherName": "John Doe",
+        "features": [
+          {
+            "name": "ES6+ Fundamentals",
+            "startDate": "2024-01-15",
+            "endDate": "2024-02-28",
+            "fees": 300,
+            "teacherName": "Jane Smith"
+          }
+        ]
+      },
+      "expectedResponse": {
+        "success": true,
+        "message": "Class created successfully",
+        "class": {
+          "id": "class_123",
+          "name": "Advanced JavaScript",
+          "startDate": "2024-01-15",
+          "endDate": "2024-12-31",
+          "fees": 1500,
+          "teacherName": "John Doe",
+          "features": [
+            {
+              "id": "feature_123",
+              "name": "ES6+ Fundamentals",
+              "startDate": "2024-01-15",
+              "endDate": "2024-02-28",
+              "fees": 300,
+              "teacherName": "Jane Smith",
+              "createdAt": "2024-01-01"
+            }
+          ],
+          "createdAt": "2024-01-01",
+          "updatedAt": "2024-01-01"
+        }
+      }
+    },
+    "getTeachersExample": {
+      "method": "GET",
+      "endpoint": "/api/user/teachers",
+      "headers": {
+        "Authorization": "Bearer YOUR_JWT_TOKEN"
+      },
+      "expectedResponse": {
+        "success": true,
+        "teachers": [
+          {
+            "id": "teacher_001",
+            "name": "John Doe",
+            "email": "john.doe@institute.com",
+            "role": "Teacher"
+          },
+          {
+            "id": "teacher_002",
+            "name": "Jane Smith",
+            "email": "jane.smith@institute.com",
+            "role": "Teacher"
+          }
+        ]
+      }
+    },
+    "getAllClassesExample": {
+      "method": "GET",
+      "endpoint": "/api/class/all",
+      "headers": {
+        "Authorization": "Bearer YOUR_JWT_TOKEN"
+      },
+      "expectedResponse": {
+        "success": true,
+        "classes": [
+          {
+            "id": "class_001",
+            "name": "Advanced JavaScript",
+            "startDate": "2024-01-15",
+            "endDate": "2024-12-31",
+            "fees": 1500,
+            "teacherName": "John Doe",
+            "features": [
+              {
+                "id": "feature_001",
+                "name": "ES6+ Fundamentals",
+                "startDate": "2024-01-15",
+                "endDate": "2024-02-28",
+                "fees": 300,
+                "teacherName": "Jane Smith"
+              }
+            ],
+            "createdAt": "2024-01-01"
+          }
+        ]
+      }
+    }
+  }
+}

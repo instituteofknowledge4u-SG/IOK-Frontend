@@ -1,0 +1,165 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  /* Base Colors */
+  --background: #ffffff;
+  --foreground: #0f172a;
+
+  /* Primary Brand (Indigo) */
+  --primary: #4f46e5;
+  --primary-foreground: #ffffff;
+
+  /* Cards & Surfaces */
+  --card: #f8fafc;
+  --card-foreground: #0f172a;
+
+  /* Borders */
+  --border: #e2e8f0;
+
+  /* Secondary/Muted styles (Slate) */
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+
+  /* Accents & Hovers (Light Indigo) */
+  --accent: #e0e7ff;
+  --accent-foreground: #3730a3;
+
+  /* Error/Destructive states (Red) */
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+
+  /* Success states (Emerald) */
+  --success: #10b981;
+  --success-foreground: #ffffff;
+
+  /* Warning states (Amber) */
+  --warning: #f59e0b;
+  --warning-foreground: #ffffff;
+}
+
+.dark {
+  /* Base Colors - Deep neutral charcoal */
+  --background: #131314;
+  --foreground: #e3e3e3;
+
+  /* Primary Brand */
+  --primary: #e3e3e3;
+  --primary-foreground: #131314;
+
+  /* Cards & Surfaces */
+  --card: #1e1f20;
+  --card-foreground: #e3e3e3;
+
+  /* Borders */
+  --border: #444746;
+
+  /* Secondary/Muted styles */
+  --muted: #282a2c;
+  --muted-foreground: #8e918f;
+
+  /* Accents & Hovers */
+  --accent: #333538;
+  --accent-foreground: #ffffff;
+
+  /* Error/Destructive states */
+  --destructive: #f28b82;
+  --destructive-foreground: #3c0603;
+
+  /* Success states */
+  --success: #81c995;
+  --success-foreground: #0d381e;
+
+  /* Warning states (Amber/Yellow for dark mode) */
+  --warning: #fde293;
+  --warning-foreground: #5c3a21;
+}
+
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-border: var(--border);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+}
+
+@layer utilities {
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(156, 163, 175, 0.3) transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.3);
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(156, 163, 175, 0.5);
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@layer base {
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+
+    /* Global scrollbar for Firefox */
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  /* Global scrollbar for Webkit (Chrome, Edge, Safari) */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-foreground);
+  }
+}

@@ -163,7 +163,7 @@ export default function LandingPage() {
                 onClick={() => navigate("/")}
                 className="bg-primary hover:opacity-90 text-primary-foreground px-12 py-4 rounded-full font-black text-sm uppercase tracking-widest shadow-lg shadow-primary/30 transition-opacity"
               >
-                Back to system
+                Go to Home
               </motion.button>
             )}
           </div>

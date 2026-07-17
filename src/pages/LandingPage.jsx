@@ -154,7 +154,7 @@ export default function LandingPage() {
                 onClick={openModal}
                 className="bg-primary hover:opacity-90 text-primary-foreground px-12 py-4 rounded-full font-black text-sm uppercase tracking-widest shadow-lg shadow-primary/30 transition-opacity"
               >
-                Join US
+                Join Us
               </motion.button>
             ) : (
               <motion.button
@@ -163,7 +163,7 @@ export default function LandingPage() {
                 onClick={() => navigate("/")}
                 className="bg-primary hover:opacity-90 text-primary-foreground px-12 py-4 rounded-full font-black text-sm uppercase tracking-widest shadow-lg shadow-primary/30 transition-opacity"
               >
-                Go to Home
+                Back to system
               </motion.button>
             )}
           </div>

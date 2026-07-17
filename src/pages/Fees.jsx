@@ -4,7 +4,7 @@ import useFeesStore from "../stores/useFeesStore";
 import useUserStore from "../stores/useUserStore";
 import FilterPanel from "../components/UI/FilterPanel";
 import StudentRow from "../components/UI/StudentRow";
-import DashboardCards from "../components/UI/DashboardCards";
+import DashboardCards from "../components/UI/DashboardCards"; // eslint-disable-line no-unused-vars
 import StudentSearch from "../components/UI/StudentSearch";
 import DiscountToggleButton from "../components/UI/DiscountToggleButton";
 import useAuthStore from "../stores/useAuthStore";
@@ -13,6 +13,7 @@ import {
   filterBatchesForTeacher,
   filterStudentsForTeacher,
 } from "../util/teacherAccessControl";
+import { Search } from "lucide-react";
 
 const Fees = () => {
   const {
@@ -32,8 +33,7 @@ const Fees = () => {
   const [classFeesAmount, setClassFeesAmount] = useState(0);
   const [filteredBatches, setFilteredBatches] = useState([]);
   const [showDiscountFields, setShowDiscountFields] = useState(false);
-  const [searchResults, setSearchResults] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [localSearchTerm, setLocalSearchTerm] = useState("");
 
   const userRole = useAuthStore((state) => state.userRole);
   const userData = useAuthStore((state) => state.user);
@@ -95,8 +95,8 @@ const Fees = () => {
   const displayedMainClasses = useMemo(() => {
     if (!mainClasses) return [];
     if (userRole === "Student") {
-      const studentClassIds = (userData?.mainClasses || []).map(
-        (c) => String(c._id || c),
+      const studentClassIds = (userData?.mainClasses || []).map((c) =>
+        String(c._id || c),
       );
       return mainClasses.filter((mc) =>
         studentClassIds.includes(String(mc._id)),
@@ -204,27 +204,33 @@ const Fees = () => {
   // Fetch students when batch is selected
   useEffect(() => {
     if (selectedBatch) {
-      fetchStudentsForBatch(selectedBatch);
-      setSearchResults([]);
-      setIsSearching(false);
+      fetchStudentsForBatch(selectedBatch); // This will update `students` from the store
     }
   }, [selectedBatch, fetchStudentsForBatch]);
 
-  const handleSearch = (results) => {
-    setSearchResults(results);
-    setIsSearching(results.length > 0 || results.length === 0);
-  };
-
   // BUG FIX: Fallback to empty array to prevent mapping crashes and restrict for students
   const displayedStudents = useMemo(() => {
-    let result = isSearching ? searchResults : students || [];
+    const allBatchStudents = students || [];
+
+    let result = allBatchStudents;
+
+    if (localSearchTerm) {
+      const lowercasedTerm = localSearchTerm.toLowerCase();
+      result = allBatchStudents.filter(
+        (student) =>
+          student.name?.toLowerCase().includes(lowercasedTerm) ||
+          student.studentId?.toLowerCase().includes(lowercasedTerm) ||
+          student.phone?.includes(lowercasedTerm),
+      );
+    }
+
     if (userRole === "Student") {
       result = result.filter(
         (s) => (s._id || s.id || s.studentId) === userData?._id,
       );
     }
     return result;
-  }, [isSearching, searchResults, students, userRole, userData]);
+  }, [localSearchTerm, students, userRole, userData]);
 
   const getMonthLabel = (date) =>
     date.toLocaleString("default", { month: "long", year: "numeric" });
@@ -354,12 +360,14 @@ const Fees = () => {
     if (foundBatch && foundMainClassId) {
       handleMainClassChange(foundMainClassId);
       setTimeout(() => handleBatchChange(foundBatch._id), 100);
+      setLocalSearchTerm(student.name);
       setGlobalSearchResults([]);
       toast.success(`Found and selected ${student.name}'s batch`);
     } else if (student.mainClasses?.length > 0) {
       const allowedMainClass = student.mainClasses.find((mainClass) =>
         displayedCourseIds.has(String(mainClass?._id || mainClass)),
       );
+      setLocalSearchTerm(student.name);
       const fallbackMainClass = isTeacher
         ? allowedMainClass
         : student.mainClasses[0];
@@ -368,7 +376,7 @@ const Fees = () => {
         return;
       }
       handleMainClassChange(fallbackMainClass?._id || fallbackMainClass);
-      toast.success(
+      toast.info(
         `Selected main class for ${student.name}. Please select a batch manually.`,
       );
       setGlobalSearchResults([]);
@@ -458,15 +466,23 @@ const Fees = () => {
       {selectedMainClass && selectedBatch && (
         <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden transition-colors">
           <div className="p-6 border-b border-border">
-            <StudentSearch
-              students={students || []}
-              onSearch={handleSearch}
-              debounceMs={500}
-            />
-            {isSearching && searchResults.length > 0 && (
+            <div className="relative">
+              <Search
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+                size={20}
+              />
+              <input
+                type="text"
+                placeholder="Search students in this batch by name, ID, or phone..."
+                value={localSearchTerm}
+                onChange={(e) => setLocalSearchTerm(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 text-base border border-border rounded-xl bg-background focus:ring-2 focus:ring-primary/20 outline-none transition-shadow"
+              />
+            </div>
+            {localSearchTerm && (
               <div className="mt-3 p-3 bg-primary/10 border border-primary/20 rounded-lg text-sm text-primary">
-                Showing {searchResults.length} search result
-                {searchResults.length !== 1 ? "s" : ""}
+                Showing {displayedStudents.length} search result(s) for "
+                {localSearchTerm}"
               </div>
             )}
           </div>
@@ -493,7 +509,7 @@ const Fees = () => {
           ) : displayedStudents.length === 0 ? (
             <div className="p-8 text-center">
               <p className="text-muted-foreground text-lg">
-                {isSearching
+                {localSearchTerm
                   ? "No students found matching your search."
                   : selectedBatch
                     ? "No students found for this batch."

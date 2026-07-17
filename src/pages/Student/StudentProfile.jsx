@@ -2062,12 +2062,43 @@ const StudentProfile = () => {
                 }
               });
             }
+            function waitForImages() {
+              var images = Array.prototype.slice.call(document.images);
+              return Promise.all(images.map(function(img) {
+                if (img.complete && img.naturalWidth > 0) {
+                  return img.decode ? img.decode().catch(function() {}) : Promise.resolve();
+                }
+                return new Promise(function(resolve) {
+                  img.onload = function() {
+                    if (img.decode) {
+                      img.decode().catch(function() {}).then(resolve);
+                    } else {
+                      resolve();
+                    }
+                  };
+                  img.onerror = resolve;
+                });
+              }));
+            }
+            function printWhenReady() {
+              Promise.race([
+                waitForImages(),
+                new Promise(function(resolve) { setTimeout(resolve, 5000); })
+              ]).then(function() {
+                fitTextFields();
+                setTimeout(function() {
+                  window.focus();
+                  window.print();
+                }, 150);
+              });
+            }
+            window.onafterprint = function() {
+              window.close();
+            };
             window.onload = function() {
               setTimeout(function() {
-                fitTextFields();
-                window.print();
-                window.close();
-              }, 800);
+                printWhenReady();
+              }, 100);
             };
           </script>
         </body>
@@ -2134,7 +2165,7 @@ const StudentProfile = () => {
         <head>
           <title>Certificate - ${escapeHtml(profileData.name || "Student")}</title>
           <style>
-            * { box-sizing: border-box; }
+            * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             html, body { margin: 0; padding: 0; background: #f3f4f6; font-family: Arial, Helvetica, sans-serif; }
             body { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
             .certificate {
@@ -2268,12 +2299,43 @@ const StudentProfile = () => {
                 }
               });
             }
+            function waitForImages() {
+              var images = Array.prototype.slice.call(document.images);
+              return Promise.all(images.map(function(img) {
+                if (img.complete && img.naturalWidth > 0) {
+                  return img.decode ? img.decode().catch(function() {}) : Promise.resolve();
+                }
+                return new Promise(function(resolve) {
+                  img.onload = function() {
+                    if (img.decode) {
+                      img.decode().catch(function() {}).then(resolve);
+                    } else {
+                      resolve();
+                    }
+                  };
+                  img.onerror = resolve;
+                });
+              }));
+            }
+            function printWhenReady() {
+              Promise.race([
+                waitForImages(),
+                new Promise(function(resolve) { setTimeout(resolve, 5000); })
+              ]).then(function() {
+                fitTextFields();
+                setTimeout(function() {
+                  window.focus();
+                  window.print();
+                }, 150);
+              });
+            }
+            window.onafterprint = function() {
+              window.close();
+            };
             window.onload = function() {
               setTimeout(function() {
-                fitTextFields();
-                window.print();
-                window.close();
-              }, 800);
+                printWhenReady();
+              }, 100);
             };
           </script>
         </body>
@@ -2519,7 +2581,9 @@ const StudentProfile = () => {
                     <InfoRow
                       icon={Calendar}
                       label="Admission Date"
-                      value={formatDate(profileData.createdAt)}
+                      value={formatDate(
+                        profileData.admissionDate || profileData.createdAt,
+                      )}
                     />
                   </div>
                 </div>

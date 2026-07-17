@@ -547,16 +547,14 @@ import {
   Loader,
   Printer,
   Settings,
+  RotateCcw,
   Image as ImageIcon,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import axios from "axios";
 import useFeesStore from "../stores/useFeesStore";
 import useAuthStore from "../stores/useAuthStore";
-import {
-  filterBatchesForTeacher,
-  filterStudentsForTeacher,
-} from "../util/teacherAccessControl";
+import { filterBatchesForTeacher } from "../util/teacherAccessControl";
 import { Image } from "../assets/Image";
 import { getStudentId } from "../util/getStudentId";
 // FIX: Removed the buggy getStudentId import
@@ -584,9 +582,12 @@ const FeesYearlyStatus = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [hoveredCell, setHoveredCell] = useState(null);
   const [feesData, setFeesData] = useState({});
+  const [undoStudentId, setUndoStudentId] = useState(null);
+  const [undoingFeesId, setUndoingFeesId] = useState(null);
+  const canUndoPayments = userRole === "Admin" || userRole === "Teacher";
 
   // Print Options Customization States
-  const [showPrintOptions, setShowPrintOptions] = useState(false);
+  const [showPrintOptions] = useState(false);
   const [printConfig, setPrintConfig] = useState({
     showId: true,
     showStats: true,
@@ -724,8 +725,8 @@ const FeesYearlyStatus = () => {
   const displayedMainClasses = useMemo(() => {
     if (!mainClasses) return [];
     if (userRole === "Student") {
-      const studentClassIds = (userData?.mainClasses || []).map(
-        (c) => String(c._id || c),
+      const studentClassIds = (userData?.mainClasses || []).map((c) =>
+        String(c._id || c),
       );
       return mainClasses.filter((mc) =>
         studentClassIds.includes(String(mc._id)),
@@ -820,8 +821,8 @@ const FeesYearlyStatus = () => {
             }
 
             newFeesData[studentId] = Array.isArray(history) ? history : [];
-          } catch (e) {
-            console.error("Failed to fetch fees for", student.name);
+          } catch (error) {
+            console.error("Failed to fetch fees for", student.name, error);
             newFeesData[studentId] = [];
           }
         }),
@@ -831,6 +832,92 @@ const FeesYearlyStatus = () => {
 
     fetchAllFees();
   }, [filteredStudents, selectedMainClass]);
+
+  const handleUndoPayment = async (feesId, student) => {
+    if (!canUndoPayments || !feesId || undoingFeesId) {
+      if (!feesId) toast.error("Cannot undo: Fee record ID is missing.");
+      return;
+    }
+
+    if (
+      !window.confirm(
+        "Undo this payment? The selected month will become unpaid and can be paid again.",
+      )
+    ) {
+      return;
+    }
+
+    setUndoingFeesId(feesId);
+    const toastId = toast.loading("Undoing payment...");
+
+    try {
+      const apiUrl =
+        import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+      const authState = useAuthStore.getState();
+      const token =
+        authState.token ||
+        authState.user?.token ||
+        localStorage.getItem("token") ||
+        "";
+
+      await axios.patch(
+        `${apiUrl}/fees/undo/${feesId}`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+
+      const studentId = student.studentId || student._id || student.id;
+      setFeesData((previous) => ({
+        ...previous,
+        [studentId]: (previous[studentId] || []).map((record) =>
+          record._id === feesId
+            ? { ...record, PaidAt: null, paidAt: null }
+            : record,
+        ),
+      }));
+
+      // Fetch again so the status reflects the server's final fee record.
+      try {
+        const historyResponse = await axios.get(
+          `${apiUrl}/fees/history/${selectedMainClass}/${studentId}?t=${Date.now()}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        const rawData = historyResponse.data || {};
+        const payload = rawData.data || rawData;
+        const history = Array.isArray(rawData)
+          ? rawData
+          : Array.isArray(rawData.data)
+            ? rawData.data
+            : payload.fees ||
+              payload.feeHistory ||
+              payload.history ||
+              payload.payments ||
+              [];
+
+        setFeesData((previous) => ({
+          ...previous,
+          [studentId]: Array.isArray(history) ? history : previous[studentId],
+        }));
+      } catch (refreshError) {
+        console.warn("Payment was undone, but fee history could not refresh.", refreshError);
+      }
+
+      setUndoStudentId(null);
+      toast.success("Payment undone. This month can now be paid again.", {
+        id: toastId,
+      });
+    } catch (error) {
+      console.error("Failed to undo payment:", error);
+      const message =
+        error.response?.data?.message ||
+        "An error occurred while undoing the payment.";
+      toast.error(message, { id: toastId });
+    } finally {
+      setUndoingFeesId(null);
+    }
+  };
 
   const getPaymentStatus = (student, monthIndex, year) => {
     if (!student) return "unpaid";
@@ -845,7 +932,10 @@ const FeesYearlyStatus = () => {
             .trim()
             .toLowerCase()
         : "";
-      return dbMonth === monthString.toLowerCase();
+      // A payment is considered "paid" only if it has a payment date.
+      return (
+        dbMonth === monthString.toLowerCase() && (fee.PaidAt || fee.paidAt)
+      );
     });
 
     return payment ? "paid" : "unpaid";
@@ -883,21 +973,22 @@ const FeesYearlyStatus = () => {
     const monthString = `${months[monthIndex]} ${year}`;
     const feeRecords = feesData[studentId] || [];
 
-    const payment = feeRecords.find((fee) => {
-      const dbMonth = fee.month
-        ? fee.month
-            .replace(/\u202F/g, " ")
-            .trim()
-            .toLowerCase()
-        : "";
-      return dbMonth === monthString.toLowerCase();
-    });
+    const payment = feeRecords.find(
+      (fee) =>
+        (fee.month
+          ? fee.month
+              .replace(/\u202F/g, " ")
+              .trim()
+              .toLowerCase()
+          : "") === monthString.toLowerCase(),
+    );
 
-    if (payment) {
+    if (payment && (payment.PaidAt || payment.paidAt)) {
       const dateObj = new Date(
         payment.PaidAt || payment.paidAt || payment.createdAt || Date.now(),
       );
       return {
+        feesId: payment._id,
         date: dateObj.toLocaleDateString("en-IN", {
           month: "short",
           day: "numeric",
@@ -907,7 +998,7 @@ const FeesYearlyStatus = () => {
         status: "paid",
       };
     }
-    return { date: "-", amount: "-", status: "unpaid" };
+    return { date: "-", amount: "-", status: "unpaid", feesId: null };
   };
 
   const handlePrint = () => {
@@ -1254,6 +1345,9 @@ const FeesYearlyStatus = () => {
                             {month.substring(0, 3).toUpperCase()}
                           </th>
                         ))}
+                        <th className="px-4 py-3 text-center font-semibold text-muted-foreground whitespace-nowrap print:hidden">
+                          Actions
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/50 print:divide-y-0">
@@ -1268,7 +1362,11 @@ const FeesYearlyStatus = () => {
                         return (
                           <tr
                             key={internalId}
-                            className="hover:bg-muted/30 transition-colors print:break-inside-avoid"
+                            className={`${
+                              undoStudentId === internalId
+                                ? "bg-destructive/10"
+                                : "hover:bg-muted/30"
+                            } transition-colors print:break-inside-avoid`}
                           >
                             {/* Your custom ID Generator */}
                             <td
@@ -1299,7 +1397,23 @@ const FeesYearlyStatus = () => {
                                   className="px-3 py-3 text-center print:border print:border-gray-400 print:px-0 print:py-1"
                                 >
                                   <div
-                                    className={`relative w-12 h-12 mx-auto rounded border-2 flex items-center justify-center cursor-default transition-all print:border-none print:w-full print:h-auto print:py-0 print:bg-transparent ${getStatusColor(status)}`}
+                                    role={undoStudentId === internalId && status === "paid" ? "button" : undefined}
+                                    tabIndex={undoStudentId === internalId && status === "paid" ? 0 : undefined}
+                                    aria-label={undoStudentId === internalId && status === "paid" ? `Undo ${month} ${selectedYear} payment for ${student.name}` : undefined}
+                                    onMouseEnter={() => setHoveredCell(`${internalId}-${month}`)}
+                                    onMouseLeave={() => setHoveredCell(null)}
+                                    onClick={() => {
+                                      if (undoStudentId === internalId && status === "paid") {
+                                        handleUndoPayment(details.feesId, student);
+                                      }
+                                    }}
+                                    onKeyDown={(event) => {
+                                      if ((event.key === "Enter" || event.key === " ") && undoStudentId === internalId && status === "paid") {
+                                        event.preventDefault();
+                                        handleUndoPayment(details.feesId, student);
+                                      }
+                                    }}
+                                    className={`relative w-12 h-12 mx-auto rounded border-2 flex items-center justify-center transition-all print:border-none print:w-full print:h-auto print:py-0 print:bg-transparent ${getStatusColor(status)} ${undoStudentId === internalId && status === "paid" ? "cursor-pointer ring-2 ring-destructive ring-offset-2 hover:scale-110" : "cursor-default"}`}
                                   >
                                     <span
                                       className={`text-xs font-bold print:text-sm ${status === "unpaid" ? "print:text-gray-400" : "print:text-gray-800"}`}
@@ -1311,8 +1425,8 @@ const FeesYearlyStatus = () => {
                                     {hoveredCell === `${internalId}-${month}` &&
                                       status !== "unpaid" && (
                                         <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-foreground text-background rounded text-xs font-medium whitespace-nowrap z-50 shadow-lg print:hidden">
-                                          Paid on: {details.date} <br /> Amount:{" "}
-                                          {details.amount}
+                                          {undoStudentId === internalId ? "Click to undo this payment" : `Paid on: ${details.date}`}
+                                          {undoStudentId !== internalId && <><br />Amount: {details.amount}</>}
                                           <div className="absolute top-full left-1/2 -translate-x-1/2 w-2 h-2 bg-foreground rotate-45 -mt-1"></div>
                                         </div>
                                       )}
@@ -1320,6 +1434,27 @@ const FeesYearlyStatus = () => {
                                 </td>
                               );
                             })}
+                            <td className="px-4 py-3 text-center print:hidden">
+                              {canUndoPayments && (
+                                <button
+                                  disabled={Boolean(undoingFeesId)}
+                                  onClick={() =>
+                                    setUndoStudentId((prev) =>
+                                      prev === internalId ? null : internalId,
+                                    )
+                                  }
+                                  className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-60 ${
+                                    undoStudentId === internalId
+                                      ? "bg-destructive text-destructive-foreground hover:bg-destructive/80"
+                                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                                  }`}
+                                >
+                                  {undoStudentId === internalId
+                                    ? "Cancel undo"
+                                    : "Undo payment"}
+                                </button>
+                              )}
+                            </td>
                           </tr>
                         );
                       })}

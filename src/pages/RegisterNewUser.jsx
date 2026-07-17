@@ -27,6 +27,14 @@ import BackButton from "../components/UI/Button";
 // Assuming COUNTRIES is exported as an array of strings from this path
 import { COUNTRIES } from "../util/Countries";
 
+const formatDateForInput = (date) => {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 const STREAM_OPTIONS = [
   "1st",
   "2nd",
@@ -41,9 +49,6 @@ const STREAM_OPTIONS = [
   "XI Science",
   "XI Commerce",
   "XI Arts",
-  "XII Science",
-  "XII Commerce",
-  "XII Arts",
   "HS",
   "Vocational",
   "Diploma",
@@ -74,6 +79,7 @@ const RegisterNewUser = () => {
     name: "",
     email: "",
     phone: "",
+    admissionDate: formatDateForInput(new Date()),
     mainClasses: [],
     fatherName: "",
     dob: "",
@@ -234,6 +240,9 @@ const RegisterNewUser = () => {
     data.append("email", formData.email.trim());
     data.append("phone", formData.phone);
     data.append("role", formData.role);
+    if (formData.admissionDate) {
+      data.append("admissionDate", formData.admissionDate);
+    }
 
     formData.mainClasses.forEach((clsId) => data.append("mainClasses", clsId));
 
@@ -326,11 +335,7 @@ const RegisterNewUser = () => {
                 icon={User}
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div
-                    className={
-                      formData.role === "Teacher" ? "md:col-span-2" : ""
-                    }
-                  >
+                  <div>
                     <TextInput
                       label="Full Name"
                       name="name"
@@ -341,6 +346,16 @@ const RegisterNewUser = () => {
                       placeholder="John Doe"
                     />
                   </div>
+
+                  <TextInput
+                    label="Admission Date"
+                    type="date"
+                    name="admissionDate"
+                    value={formData.admissionDate}
+                    onChange={handleInputChange}
+                    required
+                    disabled={isAddingUser}
+                  />
 
                   {/* Extra Personal Fields ONLY for Student */}
                   {formData.role === "Student" && (

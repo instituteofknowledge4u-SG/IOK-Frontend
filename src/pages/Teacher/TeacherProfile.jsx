@@ -373,7 +373,10 @@ const TeacherProfile = () => {
       profileData.teacherId ||
       getTeacherEmployeeId(profileData);
     const joiningDate = formatIdCardDate(
-      profileData.joiningDate || profileData.joinedAt || profileData.createdAt,
+      profileData.joiningDate ||
+        profileData.joinedAt ||
+        profileData.admissionDate ||
+        profileData.createdAt,
     );
 
     const html = `
@@ -382,7 +385,7 @@ const TeacherProfile = () => {
         <head>
           <title>Teacher ID Card - ${escapeHtml(profileData.name)}</title>
           <style>
-            * { box-sizing: border-box; }
+            * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
             html, body { margin: 0; min-height: 100%; background: #111; font-family: Arial, Helvetica, sans-serif; }
             body { display: flex; align-items: center; justify-content: center; padding: 18px; }
             .id-card {
@@ -399,18 +402,7 @@ const TeacherProfile = () => {
               width: 100%;
               height: 100%;
               object-fit: cover;
-              z-index: 1;              position: absolute;
-              z-index: 2;
-              left: 50%;
-              top: 27.8%;
-              transform: translate(-50%, -50%);
-              width: 44%;
-              height: 28.5%;
-              border-radius: 50%;
-              object-fit: cover;
-              object-position: center top;
-              background: #0b5db8;
-              border: 2px solid rgba(255, 255, 255, 0.9)
+              z-index: 1;
             }
             .teacher-photo {
               position: absolute;
@@ -530,12 +522,43 @@ const TeacherProfile = () => {
                 }
               });
             }
+            function waitForImages() {
+              var images = Array.prototype.slice.call(document.images);
+              return Promise.all(images.map(function(img) {
+                if (img.complete && img.naturalWidth > 0) {
+                  return img.decode ? img.decode().catch(function() {}) : Promise.resolve();
+                }
+                return new Promise(function(resolve) {
+                  img.onload = function() {
+                    if (img.decode) {
+                      img.decode().catch(function() {}).then(resolve);
+                    } else {
+                      resolve();
+                    }
+                  };
+                  img.onerror = resolve;
+                });
+              }));
+            }
+            function printWhenReady() {
+              Promise.race([
+                waitForImages(),
+                new Promise(function(resolve) { setTimeout(resolve, 5000); })
+              ]).then(function() {
+                fitTextFields();
+                setTimeout(function() {
+                  window.focus();
+                  window.print();
+                }, 150);
+              });
+            }
+            window.onafterprint = function() {
+              window.close();
+            };
             window.onload = function() {
               setTimeout(function() {
-                fitTextFields();
-                window.print();
-                window.close();
-              }, 700);
+                printWhenReady();
+              }, 100);
             };
           </script>
         </body>
@@ -727,7 +750,9 @@ const TeacherProfile = () => {
                     <InfoRow
                       icon={Calendar}
                       label="Joined Date"
-                      value={formatDate(profileData.createdAt)}
+                      value={formatDate(
+                        profileData.admissionDate || profileData.createdAt,
+                      )}
                     />
                   </div>
                   <div className="col-span-1 md:border-r md:border-t-0 border-t border-border/50">

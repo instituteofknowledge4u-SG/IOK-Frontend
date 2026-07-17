@@ -18,6 +18,46 @@ const processBatchName = (batch) => {
   return batch;
 };
 
+const unwrapApiData = (response) => response.data?.data || response.data;
+
+const unwrapArrayData = (response) => {
+  const data = unwrapApiData(response);
+  return Array.isArray(data) ? data : [];
+};
+
+const getStudentId = (student) => {
+  if (!student) return null;
+  if (typeof student === "string") return student;
+  return student._id || student.id || student.studentId || null;
+};
+
+const getStudentsFromBatch = (batch) => {
+  const studentMap = new Map();
+
+  if (Array.isArray(batch?.mainClassStudentPairs)) {
+    batch.mainClassStudentPairs.forEach((pair) => {
+      const student = pair?.student;
+      const studentId = getStudentId(student);
+      if (studentId && typeof student === "object") {
+        studentMap.set(String(studentId), student);
+      }
+    });
+  }
+
+  if (Array.isArray(batch?.students)) {
+    batch.students.forEach((student) => {
+      const studentId = getStudentId(student);
+      if (studentId && typeof student === "object") {
+        studentMap.set(String(studentId), student);
+      }
+    });
+  }
+
+  return Array.from(studentMap.values());
+};
+
+const getBatchId = (batch) => batch?._id || batch?.id;
+
 const useAttendanceStore = create((set, get) => ({
   isLoading: false,
   error: null,
@@ -89,44 +129,28 @@ const useAttendanceStore = create((set, get) => ({
   selectBatch: async (batch) => {
     set({ isLoading: true, error: null });
     try {
+      const batchId = getBatchId(batch);
       // Fetch full batch data with populated students
-      const response = await api.get(`/batch/show/${batch._id}`);
-      const fullBatchData = processBatchName(
-        response.data || response.data.data,
-      );
+      const response = await api.get(`/batch/show/${batchId}`);
+      const fullBatchData = processBatchName(unwrapApiData(response));
+      let students = getStudentsFromBatch(fullBatchData);
 
-      // Get students from mainClassStudentPairs
-      let students = [];
-
-      if (
-        fullBatchData.mainClassStudentPairs &&
-        Array.isArray(fullBatchData.mainClassStudentPairs)
-      ) {
-        // Extract unique students from pairs
-        const studentMap = {};
-        fullBatchData.mainClassStudentPairs.forEach((pair) => {
-          if (pair.student && pair.student._id) {
-            if (!studentMap[pair.student._id]) {
-              studentMap[pair.student._id] = pair.student;
-            }
-          }
-        });
-        students = Object.values(studentMap);
-      }
-
-      // Fallback: use students array if mainClassStudentPairs is empty
-      if (
-        students.length === 0 &&
-        fullBatchData.students &&
-        Array.isArray(fullBatchData.students)
-      ) {
-        students = fullBatchData.students;
+      if (students.length === 0) {
+        try {
+          const studentsResponse = await api.get(`/batch/students/${batchId}`);
+          students = unwrapArrayData(studentsResponse).filter(
+            (student) => student && typeof student === "object",
+          );
+        } catch (studentErr) {
+          console.warn("Could not fetch batch students directly.", studentErr);
+        }
       }
 
       // Initialize attendance object
       const attendance = {};
       students.forEach((student) => {
-        attendance[student._id] = false; // Default to absent (manual)
+        const studentId = getStudentId(student);
+        if (studentId) attendance[studentId] = false; // Default to absent (manual)
       });
 
       set({
@@ -138,7 +162,7 @@ const useAttendanceStore = create((set, get) => ({
 
       // Fetch and apply historical attendance for the currently selected date
       await get().loadAttendanceState(
-        fullBatchData._id,
+        getBatchId(fullBatchData) || batchId,
         get().attendanceDate,
         students,
       );
@@ -162,7 +186,8 @@ const useAttendanceStore = create((set, get) => ({
 
     // 1. Force default everything to absent (false)
     studentsList.forEach((student) => {
-      newAttendance[student._id] = false;
+      const studentId = getStudentId(student);
+      if (studentId) newAttendance[studentId] = false;
     });
 
     try {
@@ -258,8 +283,9 @@ const useAttendanceStore = create((set, get) => ({
           });
 
           studentsList.forEach((student) => {
-            if (presentIds.includes(student._id.toString())) {
-              newAttendance[student._id] = true;
+            const studentId = getStudentId(student);
+            if (studentId && presentIds.includes(String(studentId))) {
+              newAttendance[studentId] = true;
             }
           });
         }
@@ -290,7 +316,8 @@ const useAttendanceStore = create((set, get) => ({
     const { students } = get();
     const newAttendance = {};
     students.forEach((student) => {
-      newAttendance[student._id] = true;
+      const studentId = getStudentId(student);
+      if (studentId) newAttendance[studentId] = true;
     });
     set({ attendance: newAttendance });
   },
@@ -300,7 +327,8 @@ const useAttendanceStore = create((set, get) => ({
     const { students } = get();
     const newAttendance = {};
     students.forEach((student) => {
-      newAttendance[student._id] = false;
+      const studentId = getStudentId(student);
+      if (studentId) newAttendance[studentId] = false;
     });
     set({ attendance: newAttendance });
   },
@@ -316,10 +344,10 @@ const useAttendanceStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const presentStudentIds = students
-        .filter((student) => attendance[student._id])
-        .map((student) => student._id);
+        .filter((student) => attendance[getStudentId(student)])
+        .map(getStudentId);
 
-      const response = await api.post(`/attendence/mark/${selectedBatch._id}`, {
+      const response = await api.post(`/attendence/mark/${getBatchId(selectedBatch)}`, {
         presentStudentIds,
         date: attendanceDate,
       });

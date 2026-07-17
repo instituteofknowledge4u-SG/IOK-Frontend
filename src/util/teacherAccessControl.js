@@ -1,5 +1,7 @@
 import useAuthStore from "../stores/useAuthStore";
 
+const normalizeRole = (role) => role?.toLowerCase();
+
 /**
  * Check if a teacher can access a specific student
  * Teachers can only access students in their assigned batches
@@ -9,8 +11,9 @@ export const canTeacherAccessStudent = (
   teacherBatches,
   userRole,
 ) => {
-  if (userRole === "Admin") return true;
-  if (userRole !== "Teacher") return false;
+  const role = normalizeRole(userRole);
+  if (role === "admin") return true;
+  if (role !== "teacher") return false;
 
   // Check if student exists in any of teacher's batch students
   if (!teacherBatches || teacherBatches.length === 0) return false;
@@ -49,8 +52,9 @@ export const canTeacherAccessTeacherProfile = (
   currentUserId,
   userRole,
 ) => {
-  if (userRole === "Admin") return true;
-  if (userRole !== "Teacher") return true; // Students can view teacher profiles
+  const role = normalizeRole(userRole);
+  if (role === "admin") return true;
+  if (role !== "teacher") return true; // Students can view teacher profiles
 
   // Teachers can only access their own profile
   return currentUserId === targetUserId;
@@ -69,8 +73,9 @@ export const canTeacherAccessBatch = (
   batch = null,
   userId = null,
 ) => {
-  if (userRole === "Admin") return true;
-  if (userRole !== "Teacher") return true; // Students can view batches
+  const role = normalizeRole(userRole);
+  if (role === "admin") return true;
+  if (role !== "teacher") return true; // Students can view batches
 
   // Check 1: Match by teacher email (legacy)
   if (userEmail && batchTeacherEmail && userEmail === batchTeacherEmail)
@@ -126,8 +131,9 @@ export const filterStudentsForTeacher = (
   teacherBatches,
   userRole,
 ) => {
-  if (userRole === "Admin") return students;
-  if (userRole !== "Teacher") return [];
+  const role = normalizeRole(userRole);
+  if (role === "admin") return students;
+  if (role !== "teacher") return [];
 
   if (!teacherBatches || teacherBatches.length === 0) return [];
 
@@ -166,8 +172,9 @@ export const filterBatchesForTeacher = (
   userEmail = null,
   userId = null,
 ) => {
-  if (userRole === "Admin") return batches;
-  if (userRole !== "Teacher") return batches;
+  const role = normalizeRole(userRole);
+  if (role === "admin") return batches;
+  if (role !== "teacher") return batches;
 
   const teacherBatchIds = new Set(
     (teacherBatches || []).map((b) => b._id || b),

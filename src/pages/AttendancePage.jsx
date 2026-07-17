@@ -56,6 +56,11 @@ const AttendancePage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isTimeValid, setIsTimeValid] = useState(true);
   const [timeMessage, setTimeMessage] = useState("");
+  const normalizedRole = userRole?.toLowerCase();
+  const isAdmin = normalizedRole === "admin";
+  const isTeacher = normalizedRole === "teacher";
+  const getStudentId = (student) =>
+    student?._id || student?.id || student?.studentId;
 
   // Load user and batches on mount
   useEffect(() => {
@@ -72,7 +77,7 @@ const AttendancePage = () => {
   useEffect(() => {
     if (!selectedBatch) return;
 
-    if (userRole === "Admin") {
+    if (isAdmin) {
       setIsTimeValid(true);
       setTimeMessage("");
       return;
@@ -143,14 +148,14 @@ const AttendancePage = () => {
     checkBatchTime();
     const interval = setInterval(checkBatchTime, 60000); // Re-check every minute
     return () => clearInterval(interval);
-  }, [selectedBatch, userRole]);
+  }, [selectedBatch, isAdmin]);
 
   const handleSelectBatch = async (batch) => {
     try {
       await selectBatch(batch);
 
       // Force lock attendance date to 'Today' for Teachers
-      if (userRole === "Teacher") {
+      if (isTeacher) {
         setAttendanceDate(new Date().toISOString().split("T")[0]);
       }
 
@@ -205,7 +210,10 @@ const AttendancePage = () => {
     const searchLower = searchTerm.toLowerCase();
     return (
       student.name?.toLowerCase().includes(searchLower) ||
-      student.email?.toLowerCase().includes(searchLower)
+      student.email?.toLowerCase().includes(searchLower) ||
+      String(getStudentId(student) || "")
+        .toLowerCase()
+        .includes(searchLower)
     );
   });
 
@@ -232,13 +240,15 @@ const AttendancePage = () => {
     },
   };
 
-  const displayedBatches = filterBatchesForTeacher(
-    batches,
-    userData?.batches || [],
-    userRole,
-    userData?.email,
-    userData?._id,
-  );
+  const displayedBatches = isAdmin
+    ? batches
+    : filterBatchesForTeacher(
+        batches,
+        userData?.batches || [],
+        userRole,
+        userData?.email,
+        userData?._id,
+      );
 
   if (!userData) {
     return (
@@ -444,7 +454,7 @@ const AttendancePage = () => {
                       type="date"
                       id="attendanceDate"
                       value={attendanceDate}
-                      disabled={userRole === "Teacher"}
+                      disabled={isTeacher}
                       onChange={(e) => setAttendanceDate(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     />
@@ -495,49 +505,55 @@ const AttendancePage = () => {
                         No students found matching your search
                       </p>
                     ) : (
-                      filteredStudents.map((student) => (
-                        <motion.div
-                          key={student._id}
-                          className={`flex items-center gap-4 p-4 rounded-xl border border-border transition-all ${isTimeValid ? "hover:border-primary/50 hover:bg-muted/50 cursor-pointer" : "opacity-60 cursor-not-allowed"}`}
-                          onClick={() => {
-                            if (isTimeValid) toggleAttendance(student._id);
-                          }}
-                        >
-                          <img
-                            src={
-                              student.profilePic ||
-                              `https://ui-avatars.com/api/?name=${student.name}&background=e0e7ff&color=4f46e5`
-                            }
-                            alt={student.name}
-                            className="w-10 h-10 rounded-full object-cover border border-border"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-foreground truncate">
-                              {student.name}
-                            </p>
-                            <p className="text-sm text-muted-foreground truncate">
-                              {student.email}
-                            </p>
-                          </div>
-                          <div className="shrink-0">
-                            <motion.div
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.95 }}
-                              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
-                                checkIsPresent(attendance[student._id])
-                                  ? "bg-success text-success-foreground"
-                                  : "bg-muted text-muted-foreground"
-                              }`}
-                            >
-                              {checkIsPresent(attendance[student._id]) ? (
-                                <Check className="w-5 h-5" />
-                              ) : (
-                                <X className="w-5 h-5" />
-                              )}
-                            </motion.div>
-                          </div>
-                        </motion.div>
-                      ))
+                      filteredStudents.map((student) => {
+                        const studentId = getStudentId(student);
+
+                        return (
+                          <motion.div
+                            key={studentId}
+                            className={`flex items-center gap-4 p-4 rounded-xl border border-border transition-all ${isTimeValid ? "hover:border-primary/50 hover:bg-muted/50 cursor-pointer" : "opacity-60 cursor-not-allowed"}`}
+                            onClick={() => {
+                              if (isTimeValid && studentId) {
+                                toggleAttendance(studentId);
+                              }
+                            }}
+                          >
+                            <img
+                              src={
+                                student.profilePic ||
+                                `https://ui-avatars.com/api/?name=${student.name || student.email || "Student"}&background=e0e7ff&color=4f46e5`
+                              }
+                              alt={student.name || "Student"}
+                              className="w-10 h-10 rounded-full object-cover border border-border"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-foreground truncate">
+                                {student.name || "Unknown Student"}
+                              </p>
+                              <p className="text-sm text-muted-foreground truncate">
+                                {student.email || "No email available"}
+                              </p>
+                            </div>
+                            <div className="shrink-0">
+                              <motion.div
+                                whileHover={{ scale: 1.1 }}
+                                whileTap={{ scale: 0.95 }}
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
+                                  checkIsPresent(attendance[studentId])
+                                    ? "bg-success text-success-foreground"
+                                    : "bg-muted text-muted-foreground"
+                                }`}
+                              >
+                                {checkIsPresent(attendance[studentId]) ? (
+                                  <Check className="w-5 h-5" />
+                                ) : (
+                                  <X className="w-5 h-5" />
+                                )}
+                              </motion.div>
+                            </div>
+                          </motion.div>
+                        );
+                      })
                     )}
                   </div>
 

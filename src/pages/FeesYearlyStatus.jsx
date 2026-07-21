@@ -782,7 +782,7 @@ const FeesYearlyStatus = () => {
       )
         return;
 
-      const newFeesData = { ...feesData };
+      const newFeesData = {};
       let apiUrl = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
 
       const authState = useAuthStore.getState();
@@ -827,7 +827,7 @@ const FeesYearlyStatus = () => {
           }
         }),
       );
-      setFeesData(newFeesData);
+      setFeesData((previous) => ({ ...previous, ...newFeesData }));
     };
 
     fetchAllFees();
@@ -921,6 +921,10 @@ const FeesYearlyStatus = () => {
 
   const getPaymentStatus = (student, monthIndex, year) => {
     if (!student) return "unpaid";
+    if (isBeforeEnrollmentMonth(student, monthIndex, year)) {
+      return "preEnrollment";
+    }
+
     const studentId = student.studentId || student._id || student.id;
     const monthString = `${months[monthIndex]} ${year}`;
     const feeRecords = feesData[studentId] || [];
@@ -947,6 +951,8 @@ const FeesYearlyStatus = () => {
         return "bg-green-100 border-green-500 text-green-700";
       case "partial":
         return "bg-yellow-100 border-yellow-500 text-yellow-700";
+      case "preEnrollment":
+        return "bg-blue-100 border-blue-500 text-blue-700";
       case "unpaid":
         return "bg-gray-100 border-gray-400 text-gray-700";
       default:
@@ -960,6 +966,8 @@ const FeesYearlyStatus = () => {
         return "✓ Paid";
       case "partial":
         return "◐ Partial";
+      case "preEnrollment":
+        return "-";
       default:
         return "-";
     }
@@ -967,8 +975,67 @@ const FeesYearlyStatus = () => {
 
   const yearOptions = Array.from({ length: 5 }, (_, i) => selectedYear - 2 + i);
 
+  const getStudentEnrollmentDate = (student) => {
+    const studentId = student?.studentId || student?._id || student?.id;
+    const selectedBatchData = filteredBatches.find(
+      (batch) => batch._id === selectedBatch,
+    );
+    const enrollmentPair = selectedBatchData?.mainClassStudentPairs?.find(
+      (pair) => {
+        const pairStudentId = pair?.student?._id || pair?.student;
+        const pairClassId = pair?.mainClass?._id || pair?.mainClass;
+        return (
+          String(pairStudentId) === String(studentId) &&
+          String(pairClassId) === String(selectedMainClass)
+        );
+      },
+    );
+    const selectedClass = mainClasses.find(
+      (course) => String(course._id) === String(selectedMainClass),
+    );
+    const studentClass = student?.mainClasses?.find(
+      (course) => String(course?._id || course) === String(selectedMainClass),
+    );
+
+    const dateValue =
+      enrollmentPair?.admissionDate ||
+      enrollmentPair?.enrolledAt ||
+      enrollmentPair?.createdAt ||
+      studentClass?.admissionDate ||
+      studentClass?.enrolledAt ||
+      studentClass?.createdAt ||
+      student?.admissionDate ||
+      selectedClass?.startDate ||
+      student?.createdAt;
+
+    if (!dateValue) return null;
+
+    const date = new Date(dateValue);
+    return Number.isNaN(date.getTime()) ? null : date;
+  };
+
+  const isBeforeEnrollmentMonth = (student, monthIndex, year) => {
+    const enrollmentDate = getStudentEnrollmentDate(student);
+    if (!enrollmentDate) return false;
+
+    const enrollmentMonthValue =
+      enrollmentDate.getFullYear() * 12 + enrollmentDate.getMonth();
+    const currentMonthValue = year * 12 + monthIndex;
+
+    return currentMonthValue < enrollmentMonthValue;
+  };
+
   const getPaymentDetails = (student, monthIndex, year) => {
     if (!student) return { date: "-", amount: "-", status: "unpaid" };
+    if (isBeforeEnrollmentMonth(student, monthIndex, year)) {
+      return {
+        date: "-",
+        amount: "-",
+        status: "preEnrollment",
+        feesId: null,
+      };
+    }
+
     const studentId = student.studentId || student._id || student.id;
     const monthString = `${months[monthIndex]} ${year}`;
     const feeRecords = feesData[studentId] || [];
@@ -1306,6 +1373,14 @@ const FeesYearlyStatus = () => {
               </div>
               <span className="print:text-gray-800 font-medium">Unpaid</span>
             </div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-blue-100 border-2 border-blue-500 rounded flex items-center justify-center text-blue-700 text-xs print:w-5 print:h-5 print:border print:border-gray-400 print:text-gray-800">
+                -
+              </div>
+              <span className="print:text-gray-800 font-medium">
+                Before Enrollment
+              </span>
+            </div>
           </div>
         </div>
 
@@ -1416,14 +1491,14 @@ const FeesYearlyStatus = () => {
                                     className={`relative w-12 h-12 mx-auto rounded border-2 flex items-center justify-center transition-all print:border-none print:w-full print:h-auto print:py-0 print:bg-transparent ${getStatusColor(status)} ${undoStudentId === internalId && status === "paid" ? "cursor-pointer ring-2 ring-destructive ring-offset-2 hover:scale-110" : "cursor-default"}`}
                                   >
                                     <span
-                                      className={`text-xs font-bold print:text-sm ${status === "unpaid" ? "print:text-gray-400" : "print:text-gray-800"}`}
+                                      className={`text-xs font-bold print:text-sm ${status === "unpaid" || status === "preEnrollment" ? "print:text-gray-400" : "print:text-gray-800"}`}
                                     >
                                       {getStatusLabel(status).split(" ")[0]}
                                     </span>
 
                                     {/* Tooltip - Hidden on Print */}
                                     {hoveredCell === `${internalId}-${month}` &&
-                                      status !== "unpaid" && (
+                                      status === "paid" && (
                                         <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-foreground text-background rounded text-xs font-medium whitespace-nowrap z-50 shadow-lg print:hidden">
                                           {undoStudentId === internalId ? "Click to undo this payment" : `Paid on: ${details.date}`}
                                           {undoStudentId !== internalId && <><br />Amount: {details.amount}</>}

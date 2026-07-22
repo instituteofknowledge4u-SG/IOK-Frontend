@@ -209,7 +209,6 @@ const AdminDashboard = ({
   recentEnrollments,
   isMetricsLoading,
 }) => {
-  // Get recent students
   const recentStudents = recentEnrollments || [];
 
   return (
@@ -226,7 +225,7 @@ const AdminDashboard = ({
           value={students?.length || 0}
           icon={GraduationCap}
           colorType="primary"
-          trend={{ value: "Active", label: "currently enrolled" }}
+          trend={{ value: "All-time", label: "registered" }}
         />
         <KpiCard
           isLoading={isMetricsLoading}
@@ -242,13 +241,6 @@ const AdminDashboard = ({
           icon={Layers}
           colorType="warning"
         />
-        {/* <KpiCard
-          isLoading={isLoading}
-          title="Est. Revenue"
-          value="₹ --"
-          icon={IndianRupee}
-          colorType="success"
-        /> */}
       </div>
 
       {/* Quick Action Buttons */}
@@ -350,7 +342,6 @@ const AdminDashboard = ({
 };
 
 const TeacherDashboard = ({ navigate, user, batches, isLoading }) => {
-  // Filter batches for this teacher
   const myBatches =
     batches?.filter((b) => b.teacherEmail === user?.email) || [];
 
@@ -378,13 +369,6 @@ const TeacherDashboard = ({ navigate, user, batches, isLoading }) => {
           icon={Users}
           colorType="success"
         />
-        {/* <KpiCard
-          isLoading={isLoading}
-          title="Pending Actions"
-          value="0"
-          icon={AlertCircle}
-          colorType="warning"
-        /> */}
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -441,7 +425,6 @@ const TeacherDashboard = ({ navigate, user, batches, isLoading }) => {
 };
 
 const StudentDashboard = ({ navigate, user, isLoading }) => {
-  // Calculate active courses by checking if today's date falls between startDate and endDate
   const currentDate = new Date();
   const activeCoursesCount =
     user?.mainClasses?.filter((cls) => {
@@ -451,7 +434,6 @@ const StudentDashboard = ({ navigate, user, isLoading }) => {
       return currentDate >= start && currentDate <= end;
     }).length || 0;
 
-  // Extract batches directly from the authenticated student payload
   const myBatches = user?.batches || [];
 
   return (
@@ -468,20 +450,6 @@ const StudentDashboard = ({ navigate, user, isLoading }) => {
           icon={BookOpen}
           colorType="primary"
         />
-        {/* <KpiCard
-          isLoading={isLoading}
-          title="Overall Attendance"
-          value="--%"
-          icon={CheckCircle2}
-          colorType="success"
-        />
-        <KpiCard
-          isLoading={isLoading}
-          title="Fee Status"
-          value="Active"
-          icon={IndianRupee}
-          colorType="success"
-        /> */}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -520,25 +488,6 @@ const StudentDashboard = ({ navigate, user, isLoading }) => {
             )}
           </SectionCard>
         </div>
-
-        {/* <div className="lg:col-span-1">
-          <SectionCard title="Notice Board" icon={Bell}>
-            <div className="space-y-4">
-              <div className="p-3 bg-muted/30 border border-border rounded-xl">
-                <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md mb-2 inline-block border border-primary/20">
-                  WELCOME
-                </span>
-                <h4 className="text-sm font-bold text-foreground mb-1">
-                  Welcome to the Portal
-                </h4>
-                <p className="text-xs text-muted-foreground">
-                  Keep an eye on this board for official announcements and
-                  updates.
-                </p>
-              </div>
-            </div>
-          </SectionCard>
-        </div> */}
       </div>
     </motion.div>
   );
@@ -609,14 +558,28 @@ export default function Dashboard() {
 
         const updatedProgress = useUserStore.getState().studentProgress;
 
+        // UPDATED LOGIC: A student is "Current" if they have at least one course that IS NOT completed.
+        // If a student has no classes yet, they are technically still a current (new) student.
         const activeStudents = students.filter((student) => {
           const classIds = (student.mainClasses || []).map(
             (cls) => cls._id || cls,
           );
 
-          return !classIds.some((classId) => {
+          // If they haven't been assigned to a class yet, consider them active
+          if (classIds.length === 0) return true;
+
+          // Check if there is ANY class that is not completed
+          return classIds.some((classId) => {
             const key = `${student._id}_${classId}`;
-            return updatedProgress[key]?.certificateIssued;
+            const progress = updatedProgress[key];
+
+            // Checking common status properties for safety
+            const isCompleted =
+              progress?.certificateIssued === true ||
+              progress?.completed === true ||
+              progress?.status?.toLowerCase() === "completed";
+
+            return !isCompleted;
           });
         });
 
@@ -646,42 +609,9 @@ export default function Dashboard() {
             };
           });
 
-        const currentMonthLabel = new Date().toLocaleString("default", {
-          month: "long",
-          year: "numeric",
-        });
-
         const feesDueStudents = new Set();
-
-        // for (const student of students) {
-        //   const studentId = student._id;
-        //   const classIds = (student.mainClasses || []).map(
-        //     (cls) => cls._id || cls,
-        //   );
-
-        //   for (const classId of classIds) {
-        //     try {
-        //       const response = await api.get(
-        //         `/fees/history/${classId}/${studentId}`,
-        //       );
-        //       const history = response.data?.history || [];
-        //       const paid = history.some((record) => {
-        //         const label = String(record.month || "")
-        //           .trim()
-        //           .toLowerCase();
-        //         return label === currentMonthLabel.toLowerCase();
-        //       });
-        //       if (!paid) {
-        //         feesDueStudents.add(studentId);
-        //       }
-        //     } catch (err) {
-        //       // Silently skip 404s (endpoint not ready yet)
-        //       if (err.response?.status !== 404) {
-        //         feesDueStudents.add(studentId);
-        //       }
-        //     }
-        //   }
-        // }
+        // Fees due block (currently commented out intentionally by user)
+        // ...
 
         if (isMounted) {
           setCurrentStudentsCount(activeStudents.length);

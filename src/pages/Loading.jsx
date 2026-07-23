@@ -44,7 +44,6 @@ const Loading = ({
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-foreground">
             {instituteName}
           </h1>
-          <div className="h-1 w-12 bg-primary/60 mx-auto mt-4 rounded-full" />
         </motion.div>
 
         <div className="flex flex-col items-center w-full space-y-5">

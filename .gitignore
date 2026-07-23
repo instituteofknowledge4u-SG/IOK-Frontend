@@ -5,9 +5,9 @@ dist-ssr/
 build/
 coverage/
 
-.env
-.env.*
-!.env.example
+# .env
+# .env.*
+# !.env.example
 
 logs/
 *.log

@@ -26,6 +26,7 @@ import BackButton from "../components/UI/Button";
 
 // Assuming COUNTRIES is exported as an array of strings from this path
 import { COUNTRIES } from "../util/Countries";
+import { Helmet } from "react-helmet-async";
 
 const formatDateForInput = (date) => {
   const d = new Date(date);
@@ -282,6 +283,9 @@ const RegisterNewUser = () => {
   return (
     // Changed to h-full flex-col so it fits naturally inside NavigationLayout's scroll bounds
     <div className="h-full bg-background p-4 md:p-6 flex flex-col transition-colors duration-300">
+      <Helmet>
+        <title>IOK - RegisterNewUser</title>
+      </Helmet>
       {/* File Preview Modal */}
       <FilePreviewModal
         viewingFile={viewingFile}

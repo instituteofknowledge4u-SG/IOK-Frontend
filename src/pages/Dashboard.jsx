@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Users,
   GraduationCap,
@@ -11,18 +11,34 @@ import {
   Calendar,
   Clock,
   ClipboardCheck,
-  AlertCircle,
-  CheckCircle2,
   TrendingUp,
-  Bell,
-  Download,
+  ArrowRight,
 } from "lucide-react";
 import useAuthStore from "../stores/useAuthStore";
 import useUserStore from "../stores/useUserStore";
 import useBatchStore from "../stores/useBatchStore";
 import useClassStore from "../stores/useClassStore";
 import { getStudentId } from "../util/getStudentId";
-import { api } from "../api/api";
+import { Helmet } from "react-helmet-async";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+
+// A vibrant, mode-agnostic color palette (Tailwind 500 series)
+// These look excellent on both Light (white) and Dark (dark gray/black) backgrounds
+const CHART_COLORS = [
+  "#3b82f6", // Blue
+  "#10b981", // Emerald
+  "#f59e0b", // Amber
+  "#8b5cf6", // Violet
+  "#ec4899", // Pink
+  "#06b6d4", // Cyan
+];
 
 // ==========================================
 // REUSABLE UI COMPONENTS (CARDS & SKELETONS)
@@ -115,9 +131,8 @@ const TableSkeleton = () => (
       <thead className="text-muted-foreground bg-muted/30 border-b border-border/50">
         <tr>
           {[
-            "#",
-            "Student Name",
             "Student ID",
+            "Student Name",
             "Address",
             "Course",
             "Admission Date",
@@ -153,6 +168,12 @@ const TableSkeleton = () => (
         ))}
       </tbody>
     </table>
+  </div>
+);
+
+const ChartSkeleton = () => (
+  <div className="w-full h-[300px] flex items-center justify-center animate-pulse px-4 pb-4">
+    <div className="h-40 w-40 rounded-full border-8 border-muted/50"></div>
   </div>
 );
 
@@ -211,6 +232,44 @@ const AdminDashboard = ({
 }) => {
   const recentStudents = recentEnrollments || [];
 
+  // Generate Monthly Enrollment Data for the last 6 months
+  const monthlyChartData = useMemo(() => {
+    if (!students || students.length === 0) return { data: [], total: 0 };
+
+    const monthsData = [];
+    const today = new Date();
+    let totalRecentEnrollments = 0; // BUG FIX: Track if we have > 0 total data to prevent Recharts crash
+
+    // Initialize the last 6 months (including current)
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      monthsData.push({
+        name: d.toLocaleString("default", { month: "short" }),
+        month: d.getMonth(),
+        year: d.getFullYear(),
+        Enrollments: 0,
+      });
+    }
+
+    // Populate data
+    students.forEach((student) => {
+      if (!student.createdAt) return;
+      const studentDate = new Date(student.createdAt);
+
+      const mIndex = monthsData.findIndex(
+        (m) =>
+          m.month === studentDate.getMonth() &&
+          m.year === studentDate.getFullYear(),
+      );
+      if (mIndex !== -1) {
+        monthsData[mIndex].Enrollments += 1;
+        totalRecentEnrollments += 1;
+      }
+    });
+
+    return { data: monthsData, total: totalRecentEnrollments };
+  }, [students]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -267,6 +326,7 @@ const AdminDashboard = ({
 
       {/* Data Widgets */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Table Widget - Takes up 2 columns out of 3 */}
         <div className="lg:col-span-2">
           <SectionCard title="Recent Enrollments" icon={Users}>
             {isLoading || isMetricsLoading ? (
@@ -277,13 +337,10 @@ const AdminDashboard = ({
                   <thead className="text-muted-foreground bg-muted/30 border-b border-border/50">
                     <tr>
                       <th className="py-3 px-4 font-semibold whitespace-nowrap">
-                        #
+                        Student ID
                       </th>
                       <th className="py-3 px-4 font-semibold whitespace-nowrap">
                         Student Name
-                      </th>
-                      <th className="py-3 px-4 font-semibold whitespace-nowrap">
-                        Student ID
                       </th>
                       <th className="py-3 px-4 font-semibold whitespace-nowrap">
                         Address
@@ -297,19 +354,16 @@ const AdminDashboard = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/50">
-                    {recentStudents.map((student, index) => (
+                    {recentStudents.map((student) => (
                       <tr
                         key={student._id}
                         className="hover:bg-muted/30 transition-colors group"
                       >
-                        <td className="py-3 px-4 text-muted-foreground whitespace-nowrap">
-                          {index + 1}
+                        <td className="py-3 px-4 text-muted-foreground font-mono whitespace-nowrap">
+                          {getStudentId(student) || "-"}
                         </td>
                         <td className="py-3 px-4 text-foreground font-medium whitespace-nowrap">
                           {student.name}
-                        </td>
-                        <td className="py-3 px-4 text-muted-foreground font-mono whitespace-nowrap">
-                          {getStudentId(student) || "-"}
                         </td>
                         <td
                           className="py-3 px-4 text-muted-foreground max-w-[200px] truncate"
@@ -327,11 +381,82 @@ const AdminDashboard = ({
                     ))}
                   </tbody>
                 </table>
+                <div className="flex items-center justify-end border-t border-border/50 bg-muted/20 px-4 py-3">
+                  <Link
+                    to="/students"
+                    className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-primary transition-all duration-200 hover:bg-primary/10 hover:text-primary"
+                  >
+                    See More
+                    <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1" />
+                  </Link>
+                </div>
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
                 <Users className="w-10 h-10 mb-3 opacity-20" />
                 <p>No recent enrollments found.</p>
+              </div>
+            )}
+          </SectionCard>
+        </div>
+
+        {/* Chart Widget - Takes up remaining 1 column */}
+        <div className="lg:col-span-1">
+          <SectionCard title="Enrollment Trends Monthly" icon={TrendingUp}>
+            {isLoading || isMetricsLoading ? (
+              <ChartSkeleton />
+            ) : monthlyChartData.total > 0 ? (
+              <div className="h-[300px] w-full pt-4">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={monthlyChartData.data}
+                      cx="50%"
+                      cy="45%"
+                      innerRadius={60}
+                      outerRadius={90}
+                      paddingAngle={2}
+                      dataKey="Enrollments"
+                      nameKey="name"
+                      stroke="hsl(var(--card))" // Seamlessly blends lines with the card background
+                      strokeWidth={2}
+                      animationDuration={1500}
+                    >
+                      {monthlyChartData.data.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={CHART_COLORS[index % CHART_COLORS.length]}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        borderColor: "hsl(var(--border))",
+                        borderRadius: "8px",
+                        color: "hsl(var(--foreground))",
+                        boxShadow:
+                          "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+                      }}
+                      itemStyle={{ fontWeight: 600 }} // Color naturally maps to the slice color
+                    />
+                    <Legend
+                      verticalAlign="bottom"
+                      height={36}
+                      iconType="circle"
+                      formatter={(value) => (
+                        <span className="text-muted-foreground text-sm font-medium ml-1">
+                          {value}
+                        </span>
+                      )}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+                <TrendingUp className="w-10 h-10 mb-3 opacity-20" />
+                <p>No data available yet.</p>
               </div>
             )}
           </SectionCard>
@@ -558,22 +683,17 @@ export default function Dashboard() {
 
         const updatedProgress = useUserStore.getState().studentProgress;
 
-        // UPDATED LOGIC: A student is "Current" if they have at least one course that IS NOT completed.
-        // If a student has no classes yet, they are technically still a current (new) student.
         const activeStudents = students.filter((student) => {
           const classIds = (student.mainClasses || []).map(
             (cls) => cls._id || cls,
           );
 
-          // If they haven't been assigned to a class yet, consider them active
           if (classIds.length === 0) return true;
 
-          // Check if there is ANY class that is not completed
           return classIds.some((classId) => {
             const key = `${student._id}_${classId}`;
             const progress = updatedProgress[key];
 
-            // Checking common status properties for safety
             const isCompleted =
               progress?.certificateIssued === true ||
               progress?.completed === true ||
@@ -651,6 +771,9 @@ export default function Dashboard() {
       variants={pageVariants}
       className="min-h-screen bg-background text-foreground p-4 md:p-8 transition-colors duration-300"
     >
+      <Helmet>
+        <title>IOK - Dashboard</title>
+      </Helmet>
       {/* Dynamic Header based on Role */}
       <div className="mb-8">
         <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground mb-2 capitalize">

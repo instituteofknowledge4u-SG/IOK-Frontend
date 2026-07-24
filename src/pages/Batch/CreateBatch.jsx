@@ -22,6 +22,7 @@ import toast from "react-hot-toast";
 import BackButton from "../../components/UI/Button";
 import { TRADES } from "../../constants/trades";
 import useTradeStore from "../../stores/useTradeStore";
+import { Helmet } from "react-helmet-async";
 
 const CreateBatch = () => {
   const navigate = useNavigate();
@@ -172,6 +173,9 @@ const CreateBatch = () => {
       animate={{ opacity: 1, y: 0 }}
       className="container mx-auto px-4 py-6 sm:py-8 max-w-4xl"
     >
+      <Helmet>
+        <title>{`IOK - Create Batch`}</title>
+      </Helmet>
       <div className="p-5 sm:p-8 rounded-3xl bg-card border border-border shadow-2xl transition-colors duration-300">
         <BackButton
           details={`Set up core details, schedule, and assign courses to provision a

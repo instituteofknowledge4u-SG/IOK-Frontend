@@ -14,6 +14,7 @@ import useAuthStore from "../stores/useAuthStore";
 import { api } from "../api/api";
 import BackButton from "../components/UI/Button";
 import { filterBatchesForTeacher } from "../util/teacherAccessControl";
+import { Helmet } from "react-helmet-async";
 
 const formatDateLocal = (date) => {
   const y = date.getFullYear();
@@ -232,6 +233,9 @@ const AttendanceStatus = () => {
       animate={{ opacity: 1, y: 0 }}
       className="min-h-screen bg-background p-6 md:p-8 transition-colors duration-300"
     >
+      <Helmet>
+        <title>IOK - Attendance status</title>
+      </Helmet>
       <div className="max-w-6xl mx-auto space-y-6">
         <BackButton details="Track individual student attendance by batch and month." />
 

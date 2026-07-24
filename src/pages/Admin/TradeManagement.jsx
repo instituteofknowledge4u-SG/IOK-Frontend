@@ -9,6 +9,7 @@ import {
   LayoutGrid,
 } from "lucide-react";
 import { TRADES } from "../../constants/trades";
+import { Helmet } from "react-helmet-async";
 
 /**
  * Trade Management - Read-only View
@@ -25,6 +26,9 @@ const TradeManagement = () => {
       animate={{ opacity: 1, y: 0 }}
       className="min-h-screen bg-background p-6 md:p-8"
     >
+      <Helmet>
+              <title>IOK - Trades</title>
+            </Helmet>
       <div className="max-w-5xl mx-auto space-y-8">
         {/* Header */}
         <div>

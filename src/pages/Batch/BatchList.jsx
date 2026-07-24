@@ -15,6 +15,7 @@ import useTradeStore from "../../stores/useTradeStore";
 import { generateSlug } from "../../util/generateSlug";
 import { TRADES, getTradeLabel } from "../../constants/trades";
 import { filterBatchesForTeacher } from "../../util/teacherAccessControl";
+import { Helmet } from "react-helmet-async";
 
 // --- Reusable Confirmation Modal ---
 const ConfirmModal = ({
@@ -169,6 +170,9 @@ const BatchList = () => {
       exit={{ opacity: 0, y: -20 }}
       className="container mx-auto px-4 py-8 max-w-7xl transition-colors duration-300"
     >
+      <Helmet>
+        <title>IOK - Batches</title>
+      </Helmet>
       {/* Header Section */}
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end mb-8 gap-6">
         <div>

@@ -7,6 +7,7 @@ import useBatchStore from "../../stores/useBatchStore";
 import useUserStore from "../../stores/useUserStore";
 import useClassStore from "../../stores/useClassStore";
 import BackButton from "../../components/UI/Button";
+import { Helmet } from "react-helmet-async";
 
 const EditBatch = () => {
   const navigate = useNavigate();
@@ -188,6 +189,9 @@ const EditBatch = () => {
       animate={{ opacity: 1, y: 0 }}
       className="container mx-auto px-4 py-8 max-w-2xl"
     >
+      <Helmet>
+        <title>{`IOK - Edit Batch`}</title>
+      </Helmet>
       <div className="p-8 rounded-3xl bg-card/60 backdrop-blur-2xl border border-border shadow-2xl">
         <div className="pb-5">
           <BackButton />

@@ -33,6 +33,7 @@ import {
   filterBatchesForTeacher,
 } from "../../util/teacherAccessControl";
 import { useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 
 // --- Skeleton Loader Component ---
 const StudentCardSkeleton = () => (
@@ -104,7 +105,7 @@ const StudentCard = React.memo(
     const handleCardClick = () => {
       if (userRole === "Teacher") return;
 
-      navigate("/studentprofile", {
+      navigate("/students/studentprofile", {
         state: {
           userId: student._id,
           studentId: student._id,
@@ -648,6 +649,9 @@ const AllStudents = () => {
       onScroll={handleScroll}
       className="h-full max-h-[calc(100vh)] overflow-y-auto bg-background relative flex flex-col custom-scrollbar"
     >
+      <Helmet>
+        <title>IOK - Students</title>
+      </Helmet>
       <AnimatePresence>
         {toastMessage && (
           <motion.div

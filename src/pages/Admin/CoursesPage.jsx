@@ -15,6 +15,7 @@ import {
 import useClassStore from "../../stores/useClassStore";
 import useTradeStore from "../../stores/useTradeStore";
 import { TRADES } from "../../constants/trades";
+import { Helmet } from "react-helmet-async";
 
 // --- Skeleton Loader Component ---
 const CourseSkeleton = () => (
@@ -176,6 +177,9 @@ const CoursesPage = () => {
         transition={{ duration: 0.3 }}
         className="min-h-screen bg-background p-4 md:p-8 transition-colors duration-300"
       >
+        <Helmet>
+          <title>IOK - Courses</title>
+        </Helmet>
         <div className="max-w-7xl mx-auto space-y-6">
           {/* TITLE & HEADER CONTROLS */}
           <div className="flex flex-col gap-5">

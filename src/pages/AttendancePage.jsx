@@ -25,6 +25,7 @@ import useAttendanceStore from "../stores/useAttendanceStore";
 import toast from "react-hot-toast";
 import BackButton from "../components/UI/Button";
 import { filterBatchesForTeacher } from "../util/teacherAccessControl";
+import { Helmet } from "react-helmet-async";
 
 // Utility to parse hour in 24h format for time-based filtering
 const getBatchHour = (timeStr) => {
@@ -332,6 +333,9 @@ const AttendancePage = () => {
       transition={{ duration: 0.3 }}
       className="min-h-screen bg-background text-foreground p-6 md:p-8 transition-colors duration-300"
     >
+      <Helmet>
+        <title>IOK - Attendance</title>
+      </Helmet>
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">

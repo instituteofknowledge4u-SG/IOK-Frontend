@@ -39,6 +39,7 @@ import FeesYearlyStatus from "./pages/FeesYearlyStatus";
 import IdCard from "./components/IDcard/IdCard";
 import AccessDenied from "./pages/AccessDenied";
 import TeacherProfile from "./pages/Teacher/TeacherProfile";
+import { HelmetProvider } from "react-helmet-async";
 
 const App = () => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
@@ -77,60 +78,64 @@ const App = () => {
   }
 
   return (
-    <AnimatePresence mode="Wait">
-      <Router>
-        <Toaster />
-        <LoginModal />
-        <Routes>
-          <Route element={<ProtectedRoute />}>
-            <Route element={<NavigationLayout />}>
-              {/* ==========================================
+    <HelmetProvider>
+      <AnimatePresence mode="Wait">
+        <Router>
+          <Toaster />
+          <LoginModal />
+          <Routes>
+            <Route element={<ProtectedRoute />}>
+              <Route element={<NavigationLayout />}>
+                {/* ==========================================
                   ROLE: ALL USERS (Admin, Teacher, Student)
                   ========================================== */}
-              <Route
-                element={
-                  <ProtectedRouteRoleBased
-                    allowedRoles={["Admin", "Teacher", "Student"]}
+                <Route
+                  element={
+                    <ProtectedRouteRoleBased
+                      allowedRoles={["Admin", "Teacher", "Student"]}
+                    />
+                  }
+                >
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/profile/:username" element={<ProfilePage />} />
+
+                  {/* SHARED ROUTES NOW PLACED HERE */}
+                  <Route
+                    path="/attendance-status"
+                    element={<AttendanceStatus />}
                   />
-                }
-              >
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/profile/:username" element={<ProfilePage />} />
+                  <Route
+                    path="/fees-yearly-status"
+                    element={<FeesYearlyStatus />}
+                  />
 
-                {/* SHARED ROUTES NOW PLACED HERE */}
-                <Route
-                  path="/attendance-status"
-                  element={<AttendanceStatus />}
-                />
-                <Route
-                  path="/fees-yearly-status"
-                  element={<FeesYearlyStatus />}
-                />
+                  {/* BATCH VIEWING ROUTES */}
+                  <Route path="/batches" element={<BatchList />} />
+                  <Route
+                    path="/batches/:batchName"
+                    element={<BatchDetails />}
+                  />
+                </Route>
 
-                {/* BATCH VIEWING ROUTES */}
-                <Route path="/batches" element={<BatchList />} />
-                <Route path="/batches/:batchName" element={<BatchDetails />} />
-              </Route>
-
-              {/* ==========================================
+                {/* ==========================================
                   ROLE: STAFF ONLY (Admin, Teacher)
                   ========================================== */}
-              <Route
-                element={
-                  <ProtectedRouteRoleBased
-                    allowedRoles={["Admin", "Teacher"]}
-                  />
-                }
-              >
-                <Route path="/attendance" element={<AttendancePage />} />
-                <Route path="/students" element={<AllStudents />} />
-              </Route>
+                <Route
+                  element={
+                    <ProtectedRouteRoleBased
+                      allowedRoles={["Admin", "Teacher"]}
+                    />
+                  }
+                >
+                  <Route path="/attendance" element={<AttendancePage />} />
+                  <Route path="/students" element={<AllStudents />} />
+                </Route>
 
-              {/* ==========================================
+                {/* ==========================================
                   ROLE: (Teacher , Student)
                   ========================================== */}
 
-              {/* <Route
+                {/* <Route
                 element={
                   <ProtectedRouteRoleBased
                     allowedRoles={["Student", "Teacher"]}
@@ -140,57 +145,66 @@ const App = () => {
                 <Route path="/idcard" element={<IdCard />} />
               </Route> */}
 
-              {/* ==========================================
+                {/* ==========================================
                   ROLE: ADMIN ONLY
                   ========================================== */}
-              <Route
-                element={<ProtectedRouteRoleBased allowedRoles={["Admin"]} />}
-              >
-                <Route path="/studentprofile" element={<StudentProfile />} />
-                <Route path="/teacherprofile" element={<TeacherProfile />} />
-                <Route path="/teachers" element={<AllTeachers />} />
-                <Route path="/fees" element={<Fees />} />
-                <Route path="/courses">
-                  <Route index element={<CoursesPage />} />
+                <Route
+                  element={<ProtectedRouteRoleBased allowedRoles={["Admin"]} />}
+                >
                   <Route
-                    path="/courses/:courseName"
-                    element={<CourseDetails />}
+                    path="/students/studentprofile"
+                    element={<StudentProfile />}
                   />
+                  <Route
+                    path="/teachers/teacherprofile"
+                    element={<TeacherProfile />}
+                  />
+                  <Route path="/teachers" element={<AllTeachers />} />
+                  <Route path="/fees" element={<Fees />} />
+                  <Route path="/courses">
+                    <Route index element={<CoursesPage />} />
+                    <Route
+                      path="/courses/:courseName"
+                      element={<CourseDetails />}
+                    />
 
-                  <Route path="createcourse" element={<CreateCourse />} />
-                  <Route path="addnewstudent" element={<AddNewStudent />} />
+                    <Route path="createcourse" element={<CreateCourse />} />
+                    <Route path="addnewstudent" element={<AddNewStudent />} />
+                  </Route>
+                  <Route path="/registeruser" element={<RegisterNewUser />} />
+                  <Route path="/trades" element={<TradeManagement />} />
+
+                  {/* BATCH MANAGEMENT ROUTES */}
+                  <Route path="/batches/create" element={<CreateBatch />} />
+                  <Route path="/batches/edit" element={<EditBatch />} />
                 </Route>
-                <Route path="/registeruser" element={<RegisterNewUser />} />
-                <Route path="/trades" element={<TradeManagement />} />
 
-                {/* BATCH MANAGEMENT ROUTES */}
-                <Route path="/batches/create" element={<CreateBatch />} />
-                <Route path="/batches/edit" element={<EditBatch />} />
-              </Route>
-
-              {/* ==========================================
+                {/* ==========================================
                   ROLE: STUDENT ONLY
                   ========================================== */}
-              <Route
-                element={<ProtectedRouteRoleBased allowedRoles={["Student"]} />}
-              >
-                <Route path="/student-profile" element={<StudentProfile />} />
+                <Route
+                  element={
+                    <ProtectedRouteRoleBased allowedRoles={["Student"]} />
+                  }
+                >
+                  <Route path="/student-profile" element={<StudentProfile />} />
 
-                {/* <Route path="/course-certificate" /> */}
-                {/* <Route path="/admit-card" /> */}
-                {/* <Route path="/registration-form" /> */}
+                  {/* <Route path="/course-certificate" /> */}
+                  {/* <Route path="/admit-card" /> */}
+                  {/* <Route path="/registration-form" /> */}
+                </Route>
               </Route>
             </Route>
-          </Route>
 
-          <Route path="/home" element={<LandingPage />} />
+            <Route path="/home" element={<LandingPage />} />
 
-          {/* ACCESS DENIED & 404 ROUTES */}
-          <Route path="/access-denied" element={<AccessDenied />} />
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      </Router>
-    </AnimatePresence>
+            {/* ACCESS DENIED & 404 ROUTES */}
+            <Route path="/access-denied" element={<AccessDenied />} />
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </Router>
+      </AnimatePresence>
+    </HelmetProvider>
   );
 };
 

@@ -17,6 +17,7 @@ import useClassStore from "../../stores/useClassStore";
 import useUserStore from "../../stores/useUserStore";
 import toast from "react-hot-toast";
 import BackButton from "../../components/UI/Button";
+import { Helmet } from "react-helmet-async";
 
 const AddNewStudent = () => {
   const navigate = useNavigate();
@@ -143,6 +144,9 @@ const AddNewStudent = () => {
 
   return (
     <>
+      <Helmet>
+        <title>{`IOK - Add students in Course`}</title>
+      </Helmet>
       {isStudentsLoading && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm transition-all duration-300">
           <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />

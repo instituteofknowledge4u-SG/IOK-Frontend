@@ -26,6 +26,7 @@ import useBatchStore from "../../stores/useBatchStore";
 import useClassStore from "../../stores/useClassStore";
 import { generateSlug } from "../../util/generateSlug";
 import { Image } from "../../assets/Image";
+import { Helmet } from "react-helmet-async";
 
 const TeacherProfile = () => {
   const location = useLocation();
@@ -609,6 +610,9 @@ const TeacherProfile = () => {
 
   return (
     <div className="min-h-screen relative px-4 sm:px-6 md:px-8 py-6 sm:py-8 bg-background text-foreground font-sans transition-colors duration-300">
+      <Helmet>
+        <title>{`IOK - Teacher | ${passedTeacherData?.name}`}</title>
+      </Helmet>
       <div className="max-w-4xl mx-auto relative z-10">
         {/* Header Actions */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-6 sm:mb-8">
@@ -991,7 +995,6 @@ const TeacherProfile = () => {
           )}
         </AnimatePresence>
       </div>
-
       {/* Profile Pic Viewer Modal */}
       <AnimatePresence>
         {showProfilePicModal && modalImageSrc && (
@@ -1022,7 +1025,6 @@ const TeacherProfile = () => {
           </motion.div>
         )}
       </AnimatePresence>
-
       {/* Delete Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">

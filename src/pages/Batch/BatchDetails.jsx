@@ -23,6 +23,7 @@ import toast from "react-hot-toast";
 import BackButton from "../../components/UI/Button";
 import { generateSlug } from "../../util/generateSlug";
 import { canTeacherAccessBatch } from "../../util/teacherAccessControl";
+import { Helmet } from "react-helmet-async";
 
 // --- Reusable Confirmation Modal ---
 const ConfirmModal = ({
@@ -188,7 +189,7 @@ const StudentRow = ({
 
   // Navigation Function
   const handleViewProfile = () => {
-    navigate("/studentprofile", {
+    navigate("/students/studentprofile", {
       state: {
         userId: details._id,
         studentId: details._id,
@@ -546,6 +547,9 @@ export default function BatchDetails() {
       animate={{ opacity: 1 }}
       className="container mx-auto px-4 py-8 max-w-6xl min-h-screen bg-background text-foreground transition-colors duration-300"
     >
+      <Helmet>
+        <title>{`IOK - Batch | ${batchName}`}</title>
+      </Helmet>
       <ConfirmModal
         isOpen={isBatchModalOpen}
         onClose={() => setIsBatchModalOpen(false)}

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import useUserStore from "../../stores/useUserStore";
 import { useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 
 // --- Skeleton Loader Component ---
 const TeacherCardSkeleton = () => (
@@ -113,7 +114,7 @@ const AllTeachers = () => {
   );
 
   const handleProfileClick = (teacher) => {
-    navigate("/teacherprofile", {
+    navigate("/teachers/teacherprofile", {
       state: {
         userId: teacher?._id,
         studentId: teacher?._id,
@@ -174,6 +175,9 @@ const AllTeachers = () => {
       onScroll={handleScroll}
       className="h-full max-h-[calc(100vh)] overflow-y-auto bg-background relative flex flex-col custom-scrollbar"
     >
+      <Helmet>
+        <title>IOK - Teachers</title>
+      </Helmet>
       <div className="max-w-[1600px] mx-auto w-full flex flex-col pb-8">
         {/* HEADER SECTION - Sticky relative to this scrollable container */}
         <div

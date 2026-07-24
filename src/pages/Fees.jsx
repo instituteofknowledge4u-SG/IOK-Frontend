@@ -14,6 +14,7 @@ import {
   filterStudentsForTeacher,
 } from "../util/teacherAccessControl";
 import { Search } from "lucide-react";
+import { Helmet } from "react-helmet-async";
 
 const Fees = () => {
   const {
@@ -395,6 +396,9 @@ const Fees = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 md:p-8 transition-colors duration-300">
+      <Helmet>
+        <title>IOK - Fees payment</title>
+      </Helmet>
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-foreground mb-2">
           Fees Management

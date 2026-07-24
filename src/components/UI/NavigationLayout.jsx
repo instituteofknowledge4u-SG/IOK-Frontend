@@ -31,6 +31,7 @@ import { Image } from "../../assets/Image";
 import toast from "react-hot-toast";
 import { Breadcrumbs } from "./Breadcrumbs";
 import { generateSlug } from "../../util/generateSlug";
+import { Helmet } from "react-helmet-async";
 
 export const NavigationLayout = () => {
   const [isCollapsed, setIsCollapsed] = useState(true);
@@ -162,6 +163,11 @@ export const NavigationLayout = () => {
             className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
             onClick={() => setIsSettingsOpen(false)}
           >
+            {isSettingsOpen && (
+              <Helmet>
+                <title>{`IOK - Settings`}</title>
+              </Helmet>
+            )}
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}

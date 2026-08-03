@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   Layers,
@@ -19,9 +18,10 @@ import {
   Sun,
   Moon,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion as Motion } from "framer-motion";
 import useAuthStore from "../stores/useAuthStore";
 import useAttendanceStore from "../stores/useAttendanceStore";
+import useUserStore from "../stores/useUserStore";
 import toast from "react-hot-toast";
 import BackButton from "../components/UI/Button";
 import { filterBatchesForTeacher } from "../util/teacherAccessControl";
@@ -57,8 +57,6 @@ const TIME_SLOTS = [
 ];
 
 const AttendancePage = () => {
-  const navigate = useNavigate();
-
   const userData = useAuthStore((state) => state.user);
   const loadUser = useAuthStore((state) => state.loadUser);
   const userId = useAuthStore((state) => state.id);
@@ -81,9 +79,12 @@ const AttendancePage = () => {
     markAllAbsent,
     submitAttendance,
     setAttendanceDate,
-    resetStore,
     clearError,
   } = useAttendanceStore();
+
+  // For hydrating student data with full profiles
+  const { students: allStudents, getStudents: getAllStudentsList } =
+    useUserStore();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showBatchSelection, setShowBatchSelection] = useState(true);
@@ -105,10 +106,57 @@ const AttendancePage = () => {
   const getStudentId = (student) =>
     student?._id || student?.id || student?.studentId;
 
+  const studentLookup = useMemo(() => {
+    const lookup = new Map();
+    (allStudents || []).forEach((student) => {
+      [student?._id, student?.id, student?.studentId]
+        .filter(Boolean)
+        .forEach((id) => lookup.set(String(id), student));
+    });
+    return lookup;
+  }, [allStudents]);
+
+  const getNormalizedStudentId = (student) =>
+    student?._id || student?.id || student?.studentId;
+
+  const getStudentPhoto = (student) => {
+    const photo =
+      student?.profilePic ||
+      student?.profilePicture ||
+      student?.profile_picture ||
+      student?.photo ||
+      student?.image;
+
+    if (photo) return photo;
+
+    return `https://ui-avatars.com/api/?name=${encodeURIComponent(
+      student?.name || student?.email || "Student",
+    )}&background=e0e7ff&color=4f46e5`;
+  };
+
+  const hydratedStudents = useMemo(
+    () =>
+      (students || []).map((student) => {
+        const studentId = getNormalizedStudentId(student);
+        const fullStudent = studentLookup.get(String(studentId));
+        return fullStudent
+          ? { ...fullStudent, ...student, _id: fullStudent._id || studentId }
+          : student;
+      }),
+    [students, studentLookup],
+  );
+
   // Load user and batches on mount
   useEffect(() => {
     loadUser();
   }, [loadUser]);
+
+  // Load all students for hydration
+  useEffect(() => {
+    if (getAllStudentsList && (!allStudents || allStudents.length === 0)) {
+      getAllStudentsList();
+    }
+  }, [getAllStudentsList, allStudents]);
 
   useEffect(() => {
     if (userId && userRole) {
@@ -203,7 +251,7 @@ const AttendancePage = () => {
 
       setShowBatchSelection(false);
       toast.success(`Batch "${batch.name}" selected`);
-    } catch (err) {
+    } catch {
       toast.error("Failed to select batch");
     }
   };
@@ -224,8 +272,6 @@ const AttendancePage = () => {
     try {
       await submitAttendance();
       toast.success("Attendance submitted successfully!");
-      resetStore();
-      setShowBatchSelection(true);
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to submit attendance");
     } finally {
@@ -234,7 +280,7 @@ const AttendancePage = () => {
   };
 
   // Calculations & Filters
-  const totalStudents = students.length;
+  const totalStudents = hydratedStudents.length;
   const checkIsPresent = (val) => {
     if (!val) return false;
     if (val === true) return true;
@@ -245,16 +291,20 @@ const AttendancePage = () => {
   const presentCount = Object.values(attendance).filter(checkIsPresent).length;
   const absentCount = totalStudents - presentCount;
 
-  const filteredStudents = students.filter((student) => {
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      student.name?.toLowerCase().includes(searchLower) ||
-      student.email?.toLowerCase().includes(searchLower) ||
-      String(getStudentId(student) || "")
-        .toLowerCase()
-        .includes(searchLower)
-    );
-  });
+  const filteredStudents = useMemo(
+    () =>
+      hydratedStudents.filter((student) => {
+        const searchLower = searchTerm.toLowerCase();
+        return (
+          student.name?.toLowerCase().includes(searchLower) ||
+          student.email?.toLowerCase().includes(searchLower) ||
+          String(getStudentId(student) || "")
+            .toLowerCase()
+            .includes(searchLower)
+        );
+      }),
+    [hydratedStudents, searchTerm],
+  );
 
   const displayedBatches = isAdmin
     ? batches
@@ -265,6 +315,19 @@ const AttendancePage = () => {
         userData?.email,
         userData?._id,
       );
+
+  const getBatchStudentCount = (batch) => {
+    const studentIds = new Set();
+    batch?.students?.forEach((student) => {
+      const studentId = getStudentId(student);
+      if (studentId) studentIds.add(String(studentId));
+    });
+    batch?.mainClassStudentPairs?.forEach((pair) => {
+      const studentId = getStudentId(pair?.student);
+      if (studentId) studentIds.add(String(studentId));
+    });
+    return studentIds.size;
+  };
 
   // Apply User Selection Filters for Batches
   const filteredBatches = useMemo(() => {
@@ -325,7 +388,7 @@ const AttendancePage = () => {
   }
 
   return (
-    <motion.div
+    <Motion.div
       initial="initial"
       animate="in"
       exit="out"
@@ -345,7 +408,7 @@ const AttendancePage = () => {
         {/* Global Alerts */}
         <AnimatePresence>
           {error && (
-            <motion.div
+            <Motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
@@ -361,11 +424,11 @@ const AttendancePage = () => {
                   Dismiss
                 </button>
               </div>
-            </motion.div>
+            </Motion.div>
           )}
 
           {success && (
-            <motion.div
+            <Motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
@@ -373,7 +436,7 @@ const AttendancePage = () => {
             >
               <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
               <p className="font-medium">Attendance submitted successfully!</p>
-            </motion.div>
+            </Motion.div>
           )}
         </AnimatePresence>
 
@@ -386,7 +449,7 @@ const AttendancePage = () => {
             </p>
           </div>
         ) : displayedBatches.length === 0 ? (
-          <motion.div
+          <Motion.div
             variants={containerVariants}
             initial="hidden"
             animate="show"
@@ -400,9 +463,9 @@ const AttendancePage = () => {
               You don't have any batches assigned yet. Contact your admin to
               assign you a batch.
             </p>
-          </motion.div>
+          </Motion.div>
         ) : (
-          <motion.div
+          <Motion.div
             variants={containerVariants}
             initial="hidden"
             animate="show"
@@ -410,7 +473,7 @@ const AttendancePage = () => {
           >
             {/* View 1: BATCH SELECTION */}
             {showBatchSelection ? (
-              <motion.div variants={itemVariants} className="space-y-6">
+              <Motion.div variants={itemVariants} className="space-y-6">
                 {/* Filter Controls */}
                 <div className="bg-card border border-border rounded-2xl shadow-sm p-4 md:p-6">
                   <div className="flex flex-col md:flex-row gap-4">
@@ -486,7 +549,7 @@ const AttendancePage = () => {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredBatches.map((batch) => (
-                      <motion.div
+                      <Motion.div
                         key={batch._id}
                         whileHover={{ y: -4 }}
                         whileTap={{ scale: 0.98 }}
@@ -510,27 +573,27 @@ const AttendancePage = () => {
                         <div className="flex items-center justify-between pt-4 border-t border-border">
                           <div className="flex items-center text-sm text-muted-foreground">
                             <Users className="w-4 h-4 mr-1.5 opacity-70" />
-                            {batch.students?.length || 0} Students
+                            {getBatchStudentCount(batch)} Students
                           </div>
                           <div className="text-primary opacity-0 group-hover:opacity-100 transition-opacity">
                             <ArrowLeft className="w-4 h-4 rotate-180" />
                           </div>
                         </div>
-                      </motion.div>
+                      </Motion.div>
                     ))}
                   </div>
                 )}
-              </motion.div>
+              </Motion.div>
             ) : (
               /* View 2: ATTENDANCE FORM (Batch is selected) */
-              <motion.div
+              <Motion.div
                 variants={containerVariants}
                 initial="hidden"
                 animate="show"
                 className="space-y-6"
               >
                 {/* Active Batch Summary Card */}
-                <motion.div
+                <Motion.div
                   variants={itemVariants}
                   className="bg-primary/5 border border-primary/20 rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
                 >
@@ -557,11 +620,11 @@ const AttendancePage = () => {
                   >
                     Change Batch
                   </button>
-                </motion.div>
+                </Motion.div>
 
                 {/* Attendance Interface */}
                 {students.length > 0 ? (
-                  <motion.div
+                  <Motion.div
                     variants={itemVariants}
                     className="bg-card border border-border rounded-2xl shadow-sm p-6 md:p-8"
                   >
@@ -658,7 +721,7 @@ const AttendancePage = () => {
                             );
 
                             return (
-                              <motion.div
+                              <Motion.div
                                 key={studentId}
                                 className={`flex items-center gap-4 p-4 rounded-xl border transition-all ${
                                   isTimeValid
@@ -674,12 +737,17 @@ const AttendancePage = () => {
                                 }}
                               >
                                 <img
-                                  src={
-                                    student.profilePic ||
-                                    `https://ui-avatars.com/api/?name=${student.name || student.email || "Student"}&background=e0e7ff&color=4f46e5`
-                                  }
+                                  src={getStudentPhoto(student)}
                                   alt={student.name || "Student"}
                                   className="w-10 h-10 rounded-full object-cover border border-border"
+                                  onError={(e) => {
+                                    e.currentTarget.onerror = null;
+                                    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                                      student?.name ||
+                                        student?.email ||
+                                        "Student",
+                                    )}&background=e0e7ff&color=4f46e5`;
+                                  }}
                                 />
                                 <div className="flex-1 min-w-0">
                                   <p className="font-semibold text-foreground truncate">
@@ -689,8 +757,17 @@ const AttendancePage = () => {
                                     {student.email || "No email available"}
                                   </p>
                                 </div>
+                                <span
+                                  className={`hidden sm:inline-flex shrink-0 rounded-md border px-2.5 py-1 text-xs font-semibold ${
+                                    isPresent
+                                      ? "border-success/30 bg-success/10 text-success"
+                                      : "border-destructive/30 bg-destructive/10 text-destructive"
+                                  }`}
+                                >
+                                  {isPresent ? "Present" : "Absent"}
+                                </span>
                                 <div className="shrink-0">
-                                  <motion.div
+                                  <Motion.div
                                     whileHover={
                                       isTimeValid ? { scale: 1.1 } : {}
                                     }
@@ -708,9 +785,9 @@ const AttendancePage = () => {
                                     ) : (
                                       <X className="w-5 h-5" />
                                     )}
-                                  </motion.div>
+                                  </Motion.div>
                                 </div>
-                              </motion.div>
+                              </Motion.div>
                             );
                           })
                         )}
@@ -737,7 +814,7 @@ const AttendancePage = () => {
                         )}
                       </button>
                     </form>
-                  </motion.div>
+                  </Motion.div>
                 ) : (
                   <div className="bg-card border border-border rounded-2xl p-12 text-center">
                     <Users className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
@@ -752,11 +829,11 @@ const AttendancePage = () => {
 
                 {/* Statistics Footer */}
                 {students.length > 0 && (
-                  <motion.div
+                  <Motion.div
                     variants={itemVariants}
                     className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-10"
                   >
-                    <motion.div
+                    <Motion.div
                       whileHover={{ y: -3 }}
                       className="bg-primary/10 border border-primary/20 rounded-2xl p-6 shadow-sm"
                     >
@@ -773,9 +850,9 @@ const AttendancePage = () => {
                           <Users className="w-6 h-6" />
                         </div>
                       </div>
-                    </motion.div>
+                    </Motion.div>
 
-                    <motion.div
+                    <Motion.div
                       whileHover={{ y: -3 }}
                       className="bg-success/10 border border-success/20 rounded-2xl p-6 shadow-sm"
                     >
@@ -795,9 +872,9 @@ const AttendancePage = () => {
                           <Check className="w-6 h-6" />
                         </div>
                       </div>
-                    </motion.div>
+                    </Motion.div>
 
-                    <motion.div
+                    <Motion.div
                       whileHover={{ y: -3 }}
                       className="bg-destructive/10 border border-destructive/20 rounded-2xl p-6 shadow-sm"
                     >
@@ -817,15 +894,15 @@ const AttendancePage = () => {
                           <X className="w-6 h-6" />
                         </div>
                       </div>
-                    </motion.div>
-                  </motion.div>
+                    </Motion.div>
+                  </Motion.div>
                 )}
-              </motion.div>
+              </Motion.div>
             )}
-          </motion.div>
+          </Motion.div>
         )}
       </div>
-    </motion.div>
+    </Motion.div>
   );
 };
 

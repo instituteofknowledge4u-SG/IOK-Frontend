@@ -197,7 +197,7 @@ const useAttendanceStore = create((set, get) => ({
       try {
         // Try the by-date route first (more specific)
         response = await api.get(`/attendence/by-date/${batchId}?date=${date}`);
-      } catch (e) {
+      } catch {
         // Fallback to standard route
         response = await api.get(`/attendence/${batchId}?date=${date}`);
       }
@@ -241,7 +241,9 @@ const useAttendanceStore = create((set, get) => ({
             try {
               if (new Date(d.date).toISOString().split("T")[0] === date)
                 return true;
-            } catch (e) {}
+            } catch {
+              return false;
+            }
             // Loose fallback match
             const dateParts = date.split("-");
             return dateParts.every((part) => d.date.includes(part));
@@ -355,7 +357,6 @@ const useAttendanceStore = create((set, get) => ({
       set({
         isLoading: false,
         success: true,
-        attendance: {},
       });
 
       setTimeout(() => set({ success: false }), 3000);

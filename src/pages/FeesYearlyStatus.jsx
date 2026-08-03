@@ -19,6 +19,8 @@ import { getStudentId } from "../util/getStudentId";
 import { Helmet } from "react-helmet-async";
 // FIX: Removed the buggy getStudentId import
 
+const FEES_YEARLY_SELECTION_KEY = "iokFeesYearlyStatusSelection";
+
 const FeesYearlyStatus = () => {
   const {
     mainClasses,
@@ -116,6 +118,40 @@ const FeesYearlyStatus = () => {
   }, [fetchMainClasses, fetchBatches]);
 
   useEffect(() => {
+    if (selectedMainClass || selectedBatch) return;
+
+    try {
+      const savedSelection = JSON.parse(
+        sessionStorage.getItem(FEES_YEARLY_SELECTION_KEY) || "{}",
+      );
+      if (savedSelection.selectedYear) {
+        setSelectedYear(savedSelection.selectedYear);
+      }
+      if (savedSelection.selectedMainClass) {
+        setSelectedMainClass(savedSelection.selectedMainClass);
+      }
+      if (savedSelection.selectedBatch) {
+        setSelectedBatch(savedSelection.selectedBatch);
+      }
+    } catch {
+      sessionStorage.removeItem(FEES_YEARLY_SELECTION_KEY);
+    }
+  }, [selectedMainClass, selectedBatch, setSelectedMainClass, setSelectedBatch]);
+
+  useEffect(() => {
+    if (!selectedMainClass && !selectedBatch) return;
+
+    sessionStorage.setItem(
+      FEES_YEARLY_SELECTION_KEY,
+      JSON.stringify({
+        selectedMainClass,
+        selectedBatch,
+        selectedYear,
+      }),
+    );
+  }, [selectedMainClass, selectedBatch, selectedYear]);
+
+  useEffect(() => {
     if (getStudents && (!allStudents || allStudents.length === 0)) {
       getStudents();
     }
@@ -157,6 +193,7 @@ const FeesYearlyStatus = () => {
 
   useEffect(() => {
     if (!selectedBatch || !selectedMainClass) return;
+    if (filteredBatches.length === 0) return;
     if (!filteredBatches.some((batch) => batch._id === selectedBatch)) {
       setSelectedBatch(null);
     }
@@ -607,7 +644,20 @@ const FeesYearlyStatus = () => {
   };
 
   const handlePrint = () => {
-    window.print();
+    sessionStorage.setItem(
+      FEES_YEARLY_SELECTION_KEY,
+      JSON.stringify({
+        selectedMainClass,
+        selectedBatch,
+        selectedYear,
+      }),
+    );
+
+    window.requestAnimationFrame(() => {
+      window.setTimeout(() => {
+        window.print();
+      }, 100);
+    });
   };
 
   const getSelectedClassData = () => {

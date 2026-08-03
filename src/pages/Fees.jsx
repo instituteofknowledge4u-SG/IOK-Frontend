@@ -44,6 +44,9 @@ const Fees = () => {
   const [pendingCurrentMonth, setPendingCurrentMonth] = useState(0);
   const [pendingPreviousMonth, setPendingPreviousMonth] = useState(0);
   const [pendingLoading, setPendingLoading] = useState(false);
+  const [studentFeeHistory, setStudentFeeHistory] = useState({});
+  const [feeStatusLoading, setFeeStatusLoading] = useState(false);
+  const [feeStatusRefreshKey, setFeeStatusRefreshKey] = useState(0);
   const mainClassesCount = mainClasses?.length || 0;
   const batchesCount = batches?.length || 0;
   const allStudentsCount = allStudents?.length || 0;
@@ -358,6 +361,68 @@ const Fees = () => {
     };
   }, [searchableStudents, isTeacher, displayedCourseIds]);
 
+  const normalizeFeeHistory = (rawData) => {
+    if (Array.isArray(rawData)) return rawData;
+    if (Array.isArray(rawData?.data)) return rawData.data;
+
+    const payload = rawData?.data || rawData || {};
+    return (
+      payload.fees ||
+      payload.feeHistory ||
+      payload.history ||
+      payload.payments ||
+      []
+    );
+  };
+
+  useEffect(() => {
+    if (!selectedMainClass || !displayedStudents.length) {
+      return;
+    }
+
+    let isMounted = true;
+    const loadStudentFeeHistory = async () => {
+      setFeeStatusLoading(true);
+      const nextHistory = {};
+
+      await Promise.all(
+        displayedStudents.map(async (student) => {
+          const studentId = getNormalizedStudentId(student);
+          if (!studentId) return;
+
+          try {
+            const response = await api.get(
+              `/fees/history/${selectedMainClass}/${studentId}`,
+            );
+            nextHistory[String(studentId)] = normalizeFeeHistory(
+              response.data,
+            );
+          } catch (error) {
+            if (error.response?.status !== 404) {
+              console.warn(
+                "Failed to fetch fee status for",
+                student.name,
+                error,
+              );
+            }
+            nextHistory[String(studentId)] = [];
+          }
+        }),
+      );
+
+      if (isMounted) {
+        setStudentFeeHistory(nextHistory);
+        setFeeStatusLoading(false);
+      }
+    };
+
+    loadStudentFeeHistory();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedMainClass, displayedStudents, feeStatusRefreshKey]);
+
   const handleMainClassChange = (mainClassId) => {
     setSelectedMainClass(mainClassId);
     setSelectedBatch(null);
@@ -371,6 +436,7 @@ const Fees = () => {
     if (selectedBatch) {
       fetchStudentsForBatch(selectedBatch);
     }
+    setFeeStatusRefreshKey((key) => key + 1);
     toast.success("Payment processed successfully!");
   };
 
@@ -601,6 +667,12 @@ const Fees = () => {
                       Month
                     </th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-muted-foreground">
+                      Status
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-muted-foreground">
+                      Yearly Status
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-muted-foreground">
                       Monthly Fee
                     </th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-muted-foreground">
@@ -630,6 +702,12 @@ const Fees = () => {
                       courseName={selectedMainClassObj?.name || "N/A"}
                       onPaymentSuccess={handlePaymentSuccess}
                       showDiscount={showDiscountFields}
+                      feeHistory={
+                        studentFeeHistory[
+                          String(getNormalizedStudentId(student))
+                        ] || []
+                      }
+                      isFeeStatusLoading={feeStatusLoading}
                     />
                   ))}
                 </tbody>

@@ -1,16 +1,17 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Calendar,
-  Loader2,
-  Users,
-  BookOpen,
   CheckCircle2,
-  XCircle,
+  ChevronDown,
+  Loader2,
   MinusCircle,
+  Users,
+  XCircle,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion as Motion } from "framer-motion";
 import useAttendanceStore from "../stores/useAttendanceStore";
 import useAuthStore from "../stores/useAuthStore";
+import useUserStore from "../stores/useUserStore";
 import { api } from "../api/api";
 import BackButton from "../components/UI/Button";
 import { filterBatchesForTeacher } from "../util/teacherAccessControl";
@@ -43,6 +44,8 @@ const idsMatch = (left, right) =>
   Boolean(getEntityId(left) && getEntityId(right)) &&
   String(getEntityId(left)) === String(getEntityId(right));
 
+const getCourseLabel = (course) => course?.name || course?.title || "Course";
+
 const getBatchCourseIds = (batch) => {
   const courseIds = new Set();
 
@@ -69,6 +72,33 @@ const batchHasStudent = (batch, studentId) => {
   return inStudents || inPairs;
 };
 
+const getRecordStudents = (record, keys) => {
+  for (const key of keys) {
+    if (Array.isArray(record?.[key])) return record[key];
+  }
+  return [];
+};
+
+const getRecordDate = (record) => {
+  if (!record?.date) return "";
+  return String(record.date).split("T")[0];
+};
+
+const getStudentPhoto = (student) => {
+  const photo =
+    student?.profilePic ||
+    student?.profilePicture ||
+    student?.profile_picture ||
+    student?.photo ||
+    student?.image;
+
+  if (photo) return photo;
+
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(
+    student?.name || student?.email || "Student",
+  )}&background=e0e7ff&color=4f46e5`;
+};
+
 const AttendanceStatus = () => {
   const userId = useAuthStore((state) => state.id);
   const userRole = useAuthStore((state) => state.userRole);
@@ -78,9 +108,10 @@ const AttendanceStatus = () => {
   const {
     batches,
     getAllBatches,
-    getTeacherBatches,
     isLoading: isBatchLoading,
   } = useAttendanceStore();
+
+  const { students: allStudents, getStudents: getAllStudents } = useUserStore();
 
   const [selectedBatchId, setSelectedBatchId] = useState("");
   const [selectedMainClassId, setSelectedMainClassId] = useState("");
@@ -88,9 +119,9 @@ const AttendanceStatus = () => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
-  const [selectedStudentId, setSelectedStudentId] = useState("");
   const [batchStudents, setBatchStudents] = useState([]);
   const [attendanceRecords, setAttendanceRecords] = useState([]);
+  const [mainClasses, setMainClasses] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -99,11 +130,30 @@ const AttendanceStatus = () => {
   }, [loadUser]);
 
   useEffect(() => {
+    if (getAllStudents && (!allStudents || allStudents.length === 0)) {
+      getAllStudents();
+    }
+  }, [getAllStudents, allStudents]);
+
+  useEffect(() => {
     if (!userRole || !userId) return;
     getAllBatches();
-  }, [userRole, userId, getAllBatches, getTeacherBatches]);
+  }, [userRole, userId, getAllBatches]);
 
-  // Filter batches appropriately based on the user role
+  useEffect(() => {
+    const fetchMainClasses = async () => {
+      try {
+        const response = await api.get("/mainclass");
+        const data = response.data?.data || response.data || [];
+        setMainClasses(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.warn("Failed to load course names for attendance status.", err);
+      }
+    };
+
+    fetchMainClasses();
+  }, []);
+
   const displayedBatches = useMemo(() => {
     if (!batches) return [];
     if (userRole === "Admin") return batches;
@@ -122,17 +172,46 @@ const AttendanceStatus = () => {
     return [];
   }, [batches, userRole, userData, userId]);
 
-  const displayedMainClasses = useMemo(() => {
-    if (userRole !== "Student") return [];
+  const courseLookup = useMemo(() => {
+    const lookup = new Map();
+    mainClasses.forEach((course) => {
+      const courseId = getEntityId(course);
+      if (courseId) lookup.set(String(courseId), course);
+    });
+    return lookup;
+  }, [mainClasses]);
 
+  const studentLookup = useMemo(() => {
+    const lookup = new Map();
+    (allStudents || []).forEach((student) => {
+      [student?._id, student?.id, student?.studentId]
+        .filter(Boolean)
+        .forEach((id) => lookup.set(String(id), student));
+    });
+    return lookup;
+  }, [allStudents]);
+
+  const hydratedStudents = useMemo(() => {
+    return (batchStudents || []).map((student) => {
+      const studentId = getEntityId(student);
+      const fullStudent = studentLookup.get(String(studentId));
+      // Ensure the original student ID from the batch context is preserved
+      return fullStudent
+        ? { ...fullStudent, ...student, _id: studentId }
+        : student;
+    });
+  }, [batchStudents, studentLookup]);
+
+  const displayedMainClasses = useMemo(() => {
     const classMap = new Map();
 
     userData?.mainClasses?.forEach((course) => {
       const courseId = getEntityId(course);
       if (courseId) {
+        const fullCourse = courseLookup.get(String(courseId)) || course;
         classMap.set(String(courseId), {
           _id: courseId,
-          name: course.name || "Course",
+          name: getCourseLabel(fullCourse),
         });
       }
     });
@@ -141,44 +220,55 @@ const AttendanceStatus = () => {
       batch?.mainClasses?.forEach((course) => {
         const courseId = getEntityId(course);
         if (courseId && !classMap.has(String(courseId))) {
+          const fullCourse = courseLookup.get(String(courseId)) || course;
           classMap.set(String(courseId), {
             _id: courseId,
-            name: course.name || "Course",
+            name: getCourseLabel(fullCourse),
           });
         }
       });
 
       batch?.mainClassStudentPairs?.forEach((pair) => {
-        if (!idsMatch(pair?.student, userId)) return;
+        if (userRole === "Student" && !idsMatch(pair?.student, userId)) return;
         const courseId = getEntityId(pair?.mainClass);
         if (courseId && !classMap.has(String(courseId))) {
+          const fullCourse =
+            courseLookup.get(String(courseId)) || pair?.mainClass;
           classMap.set(String(courseId), {
             _id: courseId,
-            name: pair?.mainClass?.name || "Course",
+            name: getCourseLabel(fullCourse),
           });
         }
       });
     });
 
-    return Array.from(classMap.values());
-  }, [displayedBatches, userRole, userData, userId]);
+    return Array.from(classMap.values()).sort((a, b) =>
+      a.name.localeCompare(b.name),
+    );
+  }, [displayedBatches, userRole, userData, userId, courseLookup]);
 
   const selectableBatches = useMemo(() => {
-    if (userRole !== "Student" || !selectedMainClassId) {
-      return displayedBatches;
-    }
-
+    if (!selectedMainClassId) return [];
     return displayedBatches.filter((batch) =>
       getBatchCourseIds(batch).has(String(selectedMainClassId)),
     );
-  }, [displayedBatches, selectedMainClassId, userRole]);
+  }, [displayedBatches, selectedMainClassId]);
+
+  const selectedBatch = useMemo(
+    () =>
+      selectableBatches.find((batch) => idsMatch(batch, selectedBatchId)) ||
+      null,
+    [selectableBatches, selectedBatchId],
+  );
+
+  const selectedBatchWeekday = selectedBatch?.weekday
+    ? selectedBatch.weekday.slice(0, 3).toLowerCase()
+    : "";
 
   useEffect(() => {
-    if (userRole !== "Student") return;
-    if (!selectedMainClassId && displayedMainClasses.length > 0) {
-      setSelectedMainClassId(String(displayedMainClasses[0]._id));
-    }
-  }, [displayedMainClasses, selectedMainClassId, userRole]);
+    if (selectedMainClassId || displayedMainClasses.length === 0) return;
+    setSelectedMainClassId(String(displayedMainClasses[0]._id));
+  }, [displayedMainClasses, selectedMainClassId]);
 
   useEffect(() => {
     if (!selectedBatchId) return;
@@ -189,63 +279,59 @@ const AttendanceStatus = () => {
 
   useEffect(() => {
     if (selectedBatchId || selectableBatches.length === 0) return;
-    if (userRole === "Student") {
-      setSelectedBatchId(getEntityId(selectableBatches[0]));
-    }
-  }, [selectableBatches, selectedBatchId, userRole]);
-
-  // Enforce student selection constraints
-  useEffect(() => {
-    if (userRole === "Student" && (userData?._id || userId)) {
-      setSelectedStudentId(userData?._id || userId);
-    }
-  }, [userRole, userId, userData]);
-
-  useEffect(() => {
-    if (userRole !== "Student" && batchStudents.length > 0) {
-      if (
-        !selectedStudentId ||
-        !batchStudents.some(
-          (s) => idsMatch(s, selectedStudentId),
-        )
-      ) {
-        setSelectedStudentId(
-          batchStudents[0]._id ||
-            batchStudents[0].id ||
-            batchStudents[0].studentId,
-        );
-      }
-    }
-  }, [batchStudents, userRole, selectedStudentId]);
+    setSelectedBatchId(getEntityId(selectableBatches[0]));
+  }, [selectableBatches, selectedBatchId]);
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!selectedBatchId || !selectedMonth) return;
+      if (!selectedBatchId || !selectedMainClassId || !selectedMonth) return;
       setIsLoading(true);
       setError("");
 
       try {
-        // 1. Fetch batch information to get the student list
         const batchResponse = await api.get(`/batch/show/${selectedBatchId}`);
         const batchData = batchResponse.data?.data || batchResponse.data;
         const pairs = batchData?.mainClassStudentPairs || [];
-
         const studentMap = new Map();
+
         pairs.forEach((pair) => {
+          const pairCourseId = getEntityId(pair?.mainClass);
           const studentId = getEntityId(pair?.student);
+          if (String(pairCourseId) !== String(selectedMainClassId)) return;
+          if (userRole === "Student" && !idsMatch(pair?.student, userId))
+            return;
           if (studentId && typeof pair?.student === "object") {
             studentMap.set(String(studentId), pair.student);
           }
         });
 
-        const studentsList =
-          studentMap.size > 0
-            ? Array.from(studentMap.values())
-            : batchData?.students || [];
+        if (studentMap.size === 0) {
+          (batchData?.students || []).forEach((student) => {
+            const studentId = getEntityId(student);
+            if (!studentId || typeof student !== "object") return;
+            if (userRole === "Student" && !idsMatch(student, userId)) return;
+            studentMap.set(String(studentId), student);
+          });
+        }
 
-        setBatchStudents(studentsList);
+        if (studentMap.size === 0) {
+          const studentsResponse = await api.get(
+            `/batch/students/${selectedBatchId}`,
+          );
+          const studentsList =
+            studentsResponse.data?.data || studentsResponse.data || [];
+          if (Array.isArray(studentsList)) {
+            studentsList.forEach((student) => {
+              const studentId = getEntityId(student);
+              if (!studentId || typeof student !== "object") return;
+              if (userRole === "Student" && !idsMatch(student, userId)) return;
+              studentMap.set(String(studentId), student);
+            });
+          }
+        }
 
-        // 2. Fetch the attendance records
+        setBatchStudents(Array.from(studentMap.values()));
+
         const { startDate, endDate } = getMonthRange(selectedMonth);
         const attendanceResponse = await api.get(
           `/attendence/by-date-range/${selectedBatchId}`,
@@ -257,7 +343,7 @@ const AttendanceStatus = () => {
         const records =
           attendanceResponse.data?.data || attendanceResponse.data || [];
 
-        setAttendanceRecords(records);
+        setAttendanceRecords(Array.isArray(records) ? records : []);
       } catch (err) {
         setError(err.response?.data?.message || "Failed to load attendance");
         setBatchStudents([]);
@@ -268,71 +354,130 @@ const AttendanceStatus = () => {
     };
 
     fetchData();
-  }, [selectedBatchId, selectedMonth]);
+  }, [selectedBatchId, selectedMainClassId, selectedMonth, userRole, userId]);
 
-  const calendarData = useMemo(() => {
-    if (!selectedMonth || !selectedStudentId) return null;
+  const monthData = useMemo(() => {
+    if (!selectedMonth) return null;
 
     const [yearStr, monthStr] = selectedMonth.split("-");
     const year = parseInt(yearStr, 10);
     const month = parseInt(monthStr, 10);
-
     const daysInMonth = new Date(year, month, 0).getDate();
-    const firstDayOffset = new Date(year, month - 1, 1).getDay();
+    const attendanceByStudent = {};
 
-    const attMap = {};
-    let presentCount = 0;
-    let absentCount = 0;
-    let totalClassCount = attendanceRecords.length;
+    hydratedStudents.forEach((student) => {
+      const studentId = getEntityId(student);
+      if (studentId) attendanceByStudent[String(studentId)] = {};
+    });
 
     attendanceRecords.forEach((record) => {
-      if (!record.date) return;
-      const dateStr = record.date.split("T")[0]; // YYYY-MM-DD local
+      const dateStr = getRecordDate(record);
+      if (!dateStr) return;
 
-      const isPresent = record.Present_students?.some(
-        (s) => idsMatch(s, selectedStudentId),
-      );
-      const isAbsent = record.Absent_students?.some(
-        (s) => idsMatch(s, selectedStudentId),
-      );
+      const presentStudents = getRecordStudents(record, [
+        "Present_students",
+        "presentStudents",
+        "presentStudentIds",
+        "present",
+      ]);
+      const absentStudents = getRecordStudents(record, [
+        "Absent_students",
+        "absentStudents",
+        "absentStudentIds",
+        "absent",
+      ]);
 
-      if (isPresent) {
-        attMap[dateStr] = "present";
-        presentCount++;
-      } else if (isAbsent) {
-        attMap[dateStr] = "absent";
-        absentCount++;
-      } else {
-        attMap[dateStr] = "none";
-      }
+      hydratedStudents.forEach((student) => {
+        const studentId = getEntityId(student);
+        if (!studentId) return;
+
+        if (presentStudents.some((item) => idsMatch(item, studentId))) {
+          attendanceByStudent[String(studentId)][dateStr] = "present";
+        } else if (absentStudents.some((item) => idsMatch(item, studentId))) {
+          attendanceByStudent[String(studentId)][dateStr] = "absent";
+        } else if (presentStudents.length || absentStudents.length) {
+          attendanceByStudent[String(studentId)][dateStr] = "none";
+        }
+      });
+    });
+
+    const days = Array.from({ length: 31 }, (_, index) => {
+      const day = index + 1;
+      const isInMonth = day <= daysInMonth;
+      const date = isInMonth ? new Date(year, month - 1, day) : null;
+      return {
+        day,
+        isInMonth,
+        dateStr: isInMonth
+          ? `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`
+          : "",
+        weekday: isInMonth
+          ? date.toLocaleDateString("en-US", { weekday: "short" })
+          : "",
+      };
+    });
+
+    let presentCount = 0;
+    let absentCount = 0;
+    Object.values(attendanceByStudent).forEach((studentDays) => {
+      Object.values(studentDays).forEach((status) => {
+        if (status === "present") presentCount++;
+        if (status === "absent") absentCount++;
+      });
     });
 
     return {
-      year,
-      month,
-      daysInMonth,
-      firstDayOffset,
-      attMap,
+      days,
+      attendanceByStudent,
       presentCount,
       absentCount,
-      totalClassCount,
+      totalClasses: attendanceRecords.length,
     };
-  }, [selectedMonth, selectedStudentId, attendanceRecords]);
+  }, [selectedMonth, hydratedStudents, attendanceRecords]);
 
-  const StatCard = ({ title, value, icon: Icon, colorClass }) => (
+  const StatCard = ({ title, value, icon, colorClass }) => (
     <div
-      className={`p-4 rounded-xl border flex items-center justify-between shadow-sm transition-transform hover:-translate-y-1 ${colorClass}`}
+      className={`rounded-xl border p-4 shadow-sm flex items-center justify-between ${colorClass}`}
     >
       <div>
         <p className="text-sm font-medium opacity-80">{title}</p>
-        <p className="text-3xl font-bold mt-1">{value}</p>
+        <p className="mt-1 text-2xl font-bold">{value}</p>
       </div>
-      <Icon size={32} className="opacity-80" />
+      {icon}
     </div>
   );
 
+  const getStatusCell = (status) => {
+    if (status === "present") {
+      return {
+        label: "P",
+        title: "Present",
+        className: "bg-success/10 text-success border-success/30",
+      };
+    }
+    if (status === "absent") {
+      return {
+        label: "A",
+        title: "Absent",
+        className: "bg-destructive/10 text-destructive border-destructive/30",
+      };
+    }
+    if (status === "none") {
+      return {
+        label: "-",
+        title: "Not marked",
+        className: "bg-muted/40 text-muted-foreground border-border",
+      };
+    }
+    return {
+      label: "",
+      title: "No class",
+      className: "bg-background text-muted-foreground border-border/60",
+    };
+  };
+
   return (
-    <motion.div
+    <Motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="min-h-screen bg-background p-6 md:p-8 transition-colors duration-300"
@@ -340,25 +485,24 @@ const AttendanceStatus = () => {
       <Helmet>
         <title>IOK - Attendance status</title>
       </Helmet>
-      <div className="max-w-6xl mx-auto space-y-6">
-        <BackButton details="Track individual student attendance by batch and month." />
+      <div className="max-w-7xl mx-auto space-y-6">
+        <BackButton details="Track batch attendance by course, batch, month, and year." />
 
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
-          <div
-            className={`grid grid-cols-1 ${userRole === "Student" ? "md:grid-cols-3" : "md:grid-cols-3"} gap-4`}
-          >
-            {userRole === "Student" && (
-              <div>
-                <label className="text-sm font-semibold text-foreground mb-2 block">
-                  Course
-                </label>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="text-sm font-semibold text-foreground mb-2 block">
+                Course
+              </label>
+              <div className="relative">
                 <select
                   value={selectedMainClassId}
                   onChange={(event) => {
                     setSelectedMainClassId(event.target.value);
                     setSelectedBatchId("");
                   }}
-                  className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                  disabled={isBatchLoading || displayedMainClasses.length === 0}
+                  className="w-full px-4 py-2.5 pr-10 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all disabled:opacity-50"
                 >
                   <option value="" disabled>
                     Select a course...
@@ -369,36 +513,41 @@ const AttendanceStatus = () => {
                     </option>
                   ))}
                 </select>
+                <ChevronDown className="absolute right-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
               </div>
-            )}
+            </div>
 
             <div>
               <label className="text-sm font-semibold text-foreground mb-2 block">
                 Batch
               </label>
-              <select
-                value={selectedBatchId}
-                onChange={(event) => setSelectedBatchId(event.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-                disabled={
-                  isBatchLoading ||
-                  (userRole === "Student" && !selectedMainClassId)
-                }
-              >
-                <option value="" disabled>
-                  Select a batch...
-                </option>
-                {selectableBatches.map((batch) => (
-                  <option key={batch._id} value={batch._id}>
-                    {batch.name} ({batch.startTime} - {batch.endTime})
+              <div className="relative">
+                <select
+                  value={selectedBatchId}
+                  onChange={(event) => setSelectedBatchId(event.target.value)}
+                  disabled={
+                    isBatchLoading ||
+                    !selectedMainClassId ||
+                    selectableBatches.length === 0
+                  }
+                  className="w-full px-4 py-2.5 pr-10 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all disabled:opacity-50"
+                >
+                  <option value="" disabled>
+                    Select a batch...
                   </option>
-                ))}
-              </select>
+                  {selectableBatches.map((batch) => (
+                    <option key={batch._id} value={batch._id}>
+                      {batch.name} ({batch.startTime} - {batch.endTime})
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+              </div>
             </div>
 
             <div>
               <label className="text-sm font-semibold text-foreground mb-2 block">
-                Month
+                Month & Year
               </label>
               <input
                 type="month"
@@ -407,35 +556,6 @@ const AttendanceStatus = () => {
                 className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
               />
             </div>
-
-            {userRole !== "Student" && (
-              <div>
-                <label className="text-sm font-semibold text-foreground mb-2 block">
-                  Select Student
-                </label>
-                <div className="relative">
-                  <Users className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <select
-                    value={selectedStudentId}
-                    onChange={(e) => setSelectedStudentId(e.target.value)}
-                    disabled={!selectedBatchId || batchStudents.length === 0}
-                    className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all disabled:opacity-50"
-                  >
-                    <option value="" disabled>
-                      Select a student...
-                    </option>
-                    {batchStudents.map((student) => (
-                      <option
-                        key={student._id || student.id}
-                        value={student._id || student.id}
-                      >
-                        {student.name || student.email}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            )}
           </div>
         </div>
 
@@ -448,106 +568,191 @@ const AttendanceStatus = () => {
         {isLoading ? (
           <div className="flex items-center justify-center py-16 text-muted-foreground">
             <Loader2 className="w-8 h-8 animate-spin mr-3" /> Loading
-            calendar...
+            attendance...
           </div>
-        ) : selectedBatchId && selectedStudentId && calendarData ? (
-          <div className="bg-card border border-border rounded-2xl shadow-sm p-6">
-            {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        ) : selectedBatchId && monthData ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <StatCard
-                title="Total Classes"
-                value={calendarData.totalClassCount}
-                icon={BookOpen}
+                title="Students"
+                value={hydratedStudents.length}
+                icon={<Users size={28} className="opacity-80" />}
                 colorClass="bg-primary/10 border-primary/20 text-primary"
               />
               <StatCard
-                title="Present"
-                value={calendarData.presentCount}
-                icon={CheckCircle2}
+                title="Class Days"
+                value={monthData.totalClasses}
+                icon={<Calendar size={28} className="opacity-80" />}
+                colorClass="bg-muted/40 border-border text-foreground"
+              />
+              <StatCard
+                title="Present Marks"
+                value={monthData.presentCount}
+                icon={<CheckCircle2 size={28} className="opacity-80" />}
                 colorClass="bg-success/10 border-success/20 text-success"
               />
               <StatCard
-                title="Absent"
-                value={calendarData.absentCount}
-                icon={XCircle}
+                title="Absent Marks"
+                value={monthData.absentCount}
+                icon={<XCircle size={28} className="opacity-80" />}
                 colorClass="bg-destructive/10 border-destructive/20 text-destructive"
               />
             </div>
 
-            {/* Calendar Grid */}
-            <div className="grid grid-cols-7 gap-1 sm:gap-2 md:gap-4">
-              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-                <div
-                  key={day}
-                  className="text-center font-bold text-muted-foreground text-sm py-2 bg-muted/30 rounded-lg"
-                >
-                  {day}
-                </div>
-              ))}
+            <div className="bg-card border border-border rounded-2xl shadow-sm overflow-hidden">
+              <div className="max-h-[72vh] overflow-auto custom-scrollbar">
+                <table className="w-full min-w-[1480px] border-collapse text-sm">
+                  <thead>
+                    <tr>
+                      <th className="sticky left-0 top-0 z-40 w-64 bg-card border-b border-r border-border px-4 py-3 text-left font-semibold text-foreground">
+                        Student
+                      </th>
+                      {monthData.days.map((day) => {
+                        const isBatchDay =
+                          day.weekday.toLowerCase() === selectedBatchWeekday;
+                        return (
+                          <th
+                            key={`day-${day.day}`}
+                            className={`sticky top-0 z-30 w-10 border-b border-border px-1 py-2 text-center font-bold ${
+                              !day.isInMonth
+                                ? "bg-muted/20 text-muted-foreground/40"
+                                : isBatchDay
+                                  ? "bg-primary/15 text-primary ring-1 ring-inset ring-primary/25"
+                                  : "bg-card text-foreground"
+                            }`}
+                          >
+                            {day.day}
+                          </th>
+                        );
+                      })}
+                    </tr>
+                    <tr>
+                      <th className="sticky left-0 top-[45px] z-40 w-64 bg-card border-b border-r border-border px-4 py-2 text-left text-xs font-semibold text-muted-foreground">
+                        Name / ID
+                      </th>
+                      {monthData.days.map((day) => (
+                        <th
+                          key={`weekday-${day.day}`}
+                          className={`sticky top-[45px] z-30 w-10 border-b border-border px-1 py-2 text-center text-[10px] font-bold ${
+                            !day.isInMonth
+                              ? "bg-muted/20 text-muted-foreground/30"
+                              : day.weekday.toLowerCase() ===
+                                  selectedBatchWeekday
+                                ? "bg-primary/15 text-primary ring-1 ring-inset ring-primary/25"
+                                : "bg-muted/30 text-muted-foreground"
+                          }`}
+                        >
+                          {day.weekday}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {hydratedStudents.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan={32}
+                          className="px-4 py-10 text-center text-muted-foreground"
+                        >
+                          No students found for this course and batch.
+                        </td>
+                      </tr>
+                    ) : (
+                      hydratedStudents.map((student) => {
+                        const studentId = getEntityId(student);
+                        const studentDays =
+                          monthData.attendanceByStudent[String(studentId)] ||
+                          {};
 
-              {/* Empty Offsets */}
-              {Array.from({ length: calendarData.firstDayOffset }).map(
-                (_, i) => (
-                  <div key={`empty-${i}`} className="p-2" />
-                ),
-              )}
+                        return (
+                          <tr
+                            key={studentId}
+                            className="border-b border-border/70 hover:bg-muted/20"
+                          >
+                            <td className="sticky left-0 z-20 bg-card border-r border-border px-4 py-3">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <img
+                                  src={getStudentPhoto(student)}
+                                  alt={student.name || "Student"}
+                                  className="h-10 w-10 shrink-0 rounded-full border border-border bg-muted object-cover"
+                                  onError={(event) => {
+                                    event.currentTarget.onerror = null;
+                                    event.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                                      student?.name ||
+                                        student?.email ||
+                                        "Student",
+                                    )}&background=e0e7ff&color=4f46e5`;
+                                  }}
+                                />
+                                <div className="min-w-0">
+                                  <div className="font-semibold text-foreground truncate">
+                                    {student.name || "Unknown Student"}
+                                  </div>
+                                  <div className="text-xs text-muted-foreground truncate">
+                                    {student.studentId ||
+                                      student.email ||
+                                      studentId}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            {monthData.days.map((day) => {
+                              const cell = getStatusCell(
+                                day.isInMonth ? studentDays[day.dateStr] : "",
+                              );
+                              const isBatchDay =
+                                day.weekday.toLowerCase() ===
+                                selectedBatchWeekday;
 
-              {/* Calendar Days */}
-              {Array.from({ length: calendarData.daysInMonth }).map((_, i) => {
-                const day = i + 1;
-                const dateStr = `${calendarData.year}-${String(calendarData.month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-                const status = calendarData.attMap[dateStr];
+                              return (
+                                <td
+                                  key={`${studentId}-${day.day}`}
+                                  title={`${student.name || "Student"} - ${day.isInMonth ? `${day.weekday} ${day.day}: ${cell.title}` : "Outside selected month"}`}
+                                  className={`h-10 w-10 border border-border/60 text-center align-middle text-xs font-bold ${
+                                    day.isInMonth && isBatchDay
+                                      ? `${cell.className} ring-1 ring-inset ring-primary/20`
+                                      : day.isInMonth
+                                        ? cell.className
+                                        : "bg-muted/10 text-muted-foreground/30"
+                                  }`}
+                                >
+                                  {day.isInMonth && cell.label ? (
+                                    <span className="inline-flex h-7 w-7 items-center justify-center rounded-md">
+                                      {cell.label}
+                                    </span>
+                                  ) : null}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
-                let bgClass =
-                  "bg-muted/20 border-border/50 text-muted-foreground opacity-60"; // Grey (Class didn't happen)
-                let icon = (
-                  <MinusCircle size={16} className="mt-1 opacity-40" />
-                );
-                let statusText = "No Class";
-
-                if (status === "present") {
-                  bgClass =
-                    "bg-success/20 border-success/30 text-success shadow-sm";
-                  icon = <CheckCircle2 size={16} className="mt-1" />;
-                  statusText = "Present";
-                } else if (status === "absent") {
-                  bgClass =
-                    "bg-destructive/20 border-destructive/30 text-destructive shadow-sm";
-                  icon = <XCircle size={16} className="mt-1" />;
-                  statusText = "Absent";
-                } else if (status === "none") {
-                  bgClass = "bg-muted/40 border-border text-muted-foreground";
-                  icon = <MinusCircle size={16} className="mt-1 opacity-50" />;
-                  statusText = "Not Marked";
-                }
-
-                return (
-                  <motion.div
-                    key={day}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: i * 0.01 }}
-                    className={`flex flex-col items-center justify-center py-2 sm:py-4 px-0.5 sm:px-1 rounded-xl border transition-all ${bgClass}`}
-                  >
-                    <span className="text-sm sm:text-lg font-bold">{day}</span>
-                    {icon}
-                    <span className="text-[9px] sm:text-[10px] font-semibold mt-1 block text-center leading-tight">
-                      {statusText}
-                    </span>
-                  </motion.div>
-                );
-              })}
+            <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+              <span className="inline-flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-success" /> P = Present
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <XCircle className="h-4 w-4 text-destructive" /> A = Absent
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <MinusCircle className="h-4 w-4" /> - = Not marked
+              </span>
             </div>
           </div>
         ) : (
           <div className="bg-card border border-border rounded-2xl shadow-sm p-8 text-center text-muted-foreground">
             <Calendar className="w-8 h-8 mx-auto mb-3 text-muted-foreground/60" />
-            Select a batch, month, and student to view their attendance
-            calendar.
+            Select a course, batch, and month to view attendance.
           </div>
         )}
       </div>
-    </motion.div>
+    </Motion.div>
   );
 };
 

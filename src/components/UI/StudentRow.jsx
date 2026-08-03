@@ -17,6 +17,8 @@ const StudentRow = ({
   courseName,
   onPaymentSuccess,
   showDiscount = false,
+  feeHistory = [],
+  isFeeStatusLoading = false,
 }) => {
   const [paymentDate, setPaymentDate] = useState(
     new Date().toISOString().split("T")[0],
@@ -76,6 +78,28 @@ const StudentRow = ({
 
   const totalAmount = parseFloat(classFees) || 0;
   const finalAmount = totalAmount + fineAmount - discountAmount;
+  const selectedMonthPayment = feeHistory.find((fee) => {
+    const dbMonth = String(fee?.month || "")
+      .replace(/\u202F/g, " ")
+      .trim()
+      .toLowerCase();
+    return (
+      dbMonth === selectedMonth.toLowerCase() && (fee.PaidAt || fee.paidAt)
+    );
+  });
+  const isSelectedMonthPaid = Boolean(selectedMonthPayment);
+  const selectedYear = selectedMonth.split(" ").pop();
+  const getMonthPaidStatus = (month) =>
+    feeHistory.some((fee) => {
+      const dbMonth = String(fee?.month || "")
+        .replace(/\u202F/g, " ")
+        .trim()
+        .toLowerCase();
+      return (
+        dbMonth === `${month} ${selectedYear}`.toLowerCase() &&
+        (fee.PaidAt || fee.paidAt)
+      );
+    });
 
   const isProcessButtonEnabled =
     fineCalculated &&
@@ -399,6 +423,47 @@ const StudentRow = ({
             </option>
           ))}
         </select>
+      </td>
+
+      <td className="px-4 py-3">
+        <span
+          className={`inline-flex items-center justify-center rounded-md border px-2.5 py-1 text-xs font-semibold whitespace-nowrap ${
+            isFeeStatusLoading
+              ? "border-border bg-muted text-muted-foreground"
+              : isSelectedMonthPaid
+                ? "border-success/30 bg-success/10 text-success"
+                : "border-destructive/30 bg-destructive/10 text-destructive"
+          }`}
+        >
+          {isFeeStatusLoading
+            ? "Checking"
+            : isSelectedMonthPaid
+              ? "Paid"
+              : "Unpaid"}
+        </span>
+      </td>
+
+      <td className="px-4 py-3">
+        <div className="grid grid-cols-6 gap-1 min-w-[210px]">
+          {MONTHS.map((month) => {
+            const isPaid = getMonthPaidStatus(month);
+            return (
+              <span
+                key={month}
+                title={`${month} ${selectedYear}: ${isPaid ? "Paid" : "Unpaid"}`}
+                className={`h-6 min-w-0 rounded border text-[10px] font-bold flex items-center justify-center ${
+                  isFeeStatusLoading
+                    ? "border-border bg-muted text-muted-foreground"
+                    : isPaid
+                      ? "border-success/30 bg-success/10 text-success"
+                      : "border-border bg-muted/40 text-muted-foreground"
+                }`}
+              >
+                {month.slice(0, 3)}
+              </span>
+            );
+          })}
+        </div>
       </td>
 
       <td className="px-4 py-3 font-semibold text-foreground">₹{classFees}</td>

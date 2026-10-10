@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -8,6 +8,11 @@ import {
   BookOpen,
   Clock,
   User,
+  ArrowUp,
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+  X
 } from "lucide-react";
 import useBatchStore from "../../stores/useBatchStore";
 import useAuthStore from "../../stores/useAuthStore";
@@ -17,6 +22,9 @@ import { TRADES, getTradeLabel } from "../../constants/trades";
 import { filterBatchesForTeacher } from "../../util/teacherAccessControl";
 import { Helmet } from "react-helmet-async";
 
+// ==========================================
+// 1. CONSTANTS & HELPERS
+// ==========================================
 const WEEKDAYS = [
   "Monday",
   "Tuesday",
@@ -63,6 +71,118 @@ const formatTime12Hour = (time) => {
 
   return `${hours12}:${String(minutes).padStart(2, "0")} ${meridiem}`;
 };
+
+// ==========================================
+// 2. SHARED UI COMPONENTS
+// ==========================================
+const ScrollToTopButton = React.memo(({ isVisible, onScrollTop }) => (
+  <AnimatePresence>
+    {isVisible && (
+      <motion.button
+        initial={{ opacity: 0, scale: 0.8, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.8, y: 20 }}
+        onClick={onScrollTop}
+        className="fixed bottom-20 md:bottom-24 right-8 z-50 p-2.5 bg-foreground text-background rounded-full shadow-lg hover:scale-105 transition-all focus:outline-none"
+      >
+        <ArrowUp className="w-5 h-5" />
+      </motion.button>
+    )}
+  </AnimatePresence>
+));
+
+const Pagination = React.memo(({
+  currentPage,
+  totalPages,
+  startIndex,
+  itemsPerPage,
+  totalItems,
+  onPageChange,
+}) => {
+  if (totalPages <= 1) return null;
+
+  const getPageNumbers = () => {
+    const pages = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+      return pages;
+    }
+    if (currentPage <= 3) {
+      pages.push(1, 2, 3, 4, "...", totalPages);
+    } else if (currentPage >= totalPages - 2) {
+      pages.push(1, "...", totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+    } else {
+      pages.push(1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages);
+    }
+    return pages;
+  };
+
+  return (
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 w-full">
+      <p className="text-sm text-muted-foreground order-2 sm:order-1">
+        Showing <span className="font-medium text-foreground">{startIndex + 1}</span> to{" "}
+        <span className="font-medium text-foreground">
+          {Math.min(startIndex + itemsPerPage, totalItems)}
+        </span>{" "}
+        of <span className="font-medium text-foreground">{totalItems}</span> results
+      </p>
+
+      <div className="flex items-center gap-1 order-1 sm:order-2">
+        <button
+          onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
+          disabled={currentPage === 1}
+          className="p-2 rounded-md border border-transparent text-foreground hover:bg-muted disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+
+        <div className="flex items-center gap-1">
+          {getPageNumbers().map((number, idx) =>
+            number === "..." ? (
+              <span key={`ellipsis-${idx}`} className="w-8 flex justify-center text-muted-foreground text-sm">
+                ...
+              </span>
+            ) : (
+              <button
+                key={number}
+                onClick={() => onPageChange(number)}
+                className={`w-8 h-8 rounded-md text-sm font-medium transition-colors ${
+                  currentPage === number
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-foreground hover:bg-muted"
+                }`}
+              >
+                {number}
+              </button>
+            )
+          )}
+        </div>
+
+        <button
+          onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}
+          disabled={currentPage === totalPages}
+          className="p-2 rounded-md border border-transparent text-foreground hover:bg-muted disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+});
+
+const EmptyState = React.memo(({ isSearchActive }) => (
+  <div className="bg-background rounded-xl border border-border/60 border-dashed p-16 flex flex-col items-center justify-center text-muted-foreground">
+    <div className="bg-muted w-16 h-16 rounded-full flex items-center justify-center mb-4">
+      <Search className="w-8 h-8 text-muted-foreground/50" />
+    </div>
+    <h3 className="text-lg font-semibold text-foreground tracking-tight">No batches found</h3>
+    <p className="text-sm mt-1 text-center max-w-sm">
+      {isSearchActive
+        ? "Try adjusting your search terms or filters."
+        : "There are currently no batches available in the directory."}
+    </p>
+  </div>
+));
 
 // --- Reusable Confirmation Modal ---
 const ConfirmModal = ({
@@ -122,18 +242,85 @@ const ConfirmModal = ({
   );
 };
 
+
+// ==========================================
+// 3. MAIN CONTAINER COMPONENT
+// ==========================================
 const BatchList = () => {
   const { batches, fetchBatches, isLoading } = useBatchStore();
   const { user } = useAuthStore();
   const userRole = useAuthStore((state) => state.userRole);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedTradeId, setSelectedTradeId] = useState("");
-  const [selectedWeekday, setSelectedWeekday] = useState("");
   const batchTradeMap = useTradeStore((state) => state.batchTradeMap);
 
+  // Initialize states with values from sessionStorage if they exist
+  const [searchQuery, setSearchQuery] = useState(() => sessionStorage.getItem("batchDirectory_search") || "");
+  const [selectedTradeId, setSelectedTradeId] = useState(() => sessionStorage.getItem("batchDirectory_trade") || "");
+  const [selectedWeekday, setSelectedWeekday] = useState(() => sessionStorage.getItem("batchDirectory_weekday") || "");
+  const [currentPage, setCurrentPage] = useState(() => {
+    const savedPage = sessionStorage.getItem("batchDirectory_page");
+    return savedPage ? parseInt(savedPage, 10) : 1;
+  });
+
+  const itemsPerPage = 12; // Grid of 3 cols -> 4 rows
+
+  // Scroll Container State
+  const scrollContainerRef = useRef(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [showTopBtn, setShowTopBtn] = useState(false);
+
   useEffect(() => {
+    if (!batches || batches.length === 0) {
+      fetchBatches();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleManualRefresh = useCallback(() => {
     fetchBatches();
   }, [fetchBatches]);
+
+  const handleScroll = (e) => {
+    const scrollTop = e.target.scrollTop;
+    setIsScrolled(scrollTop > 10);
+    setShowTopBtn(scrollTop > 400);
+  };
+
+  const scrollToTop = useCallback(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, []);
+
+  // Update Handlers saving to Session Storage
+  const handleSearchChange = useCallback((val) => {
+    setSearchQuery(val);
+    sessionStorage.setItem("batchDirectory_search", val);
+    setCurrentPage(1);
+    sessionStorage.setItem("batchDirectory_page", "1");
+    scrollToTop();
+  }, [scrollToTop]);
+
+  const handleTradeChange = useCallback((val) => {
+    setSelectedTradeId(val);
+    sessionStorage.setItem("batchDirectory_trade", val);
+    setCurrentPage(1);
+    sessionStorage.setItem("batchDirectory_page", "1");
+    scrollToTop();
+  }, [scrollToTop]);
+
+  const handleWeekdayChange = useCallback((val) => {
+    setSelectedWeekday(val);
+    sessionStorage.setItem("batchDirectory_weekday", val);
+    setCurrentPage(1);
+    sessionStorage.setItem("batchDirectory_page", "1");
+    scrollToTop();
+  }, [scrollToTop]);
+
+  const handlePageChange = useCallback((page) => {
+    setCurrentPage(page);
+    sessionStorage.setItem("batchDirectory_page", page.toString());
+    scrollToTop();
+  }, [scrollToTop]);
 
   // Filter batches for teachers/students
   const batchesForUser = useMemo(() => {
@@ -208,26 +395,40 @@ const BatchList = () => {
     selectedWeekday,
   ]);
 
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredBatches.length / itemsPerPage);
+
+  // Failsafe: if filtered results shrink
+  useEffect(() => {
+    if (totalPages > 0 && currentPage > totalPages) {
+      setCurrentPage(totalPages);
+      sessionStorage.setItem("batchDirectory_page", totalPages.toString());
+    }
+  }, [totalPages, currentPage]);
+
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedBatches = filteredBatches.slice(startIndex, startIndex + itemsPerPage);
+
   const getHeaderContent = (role) => {
     switch (role) {
       case "Teacher":
         return {
           title: "Assigned Batches",
           description:
-            "Overview of your assigned classes, course details, and enrolled students. Track your daily schedules and manage your teaching itinerary effectively.",
+            "Overview of your assigned classes, course details, and enrolled students.",
         };
       case "Student":
         return {
           title: "My Batches",
           description:
-            "Access your enrolled batches, course details, and upcoming class schedules. Stay updated on your learning journey and upcoming sessions.",
+            "Access your enrolled batches, course details, and upcoming class schedules.",
         };
       case "Admin":
       default:
         return {
           title: "Batch Management",
           description:
-            "Overview of all active batches, assigned courses, fees, and student allocations. Manage, create, and organize your institution's educational schedules effectively.",
+            "Overview of all active batches, assigned courses, fees, and student allocations.",
         };
     }
   };
@@ -236,176 +437,232 @@ const BatchList = () => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="container mx-auto px-4 py-8 max-w-7xl transition-colors duration-300"
+      transition={{ duration: 0.3 }}
+      className="h-full max-h-[calc(100vh)] overflow-hidden bg-background relative flex flex-col"
     >
       <Helmet>
         <title>IOK - Batches</title>
       </Helmet>
-      {/* Header Section */}
-      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end mb-8 gap-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">
-            {title}
-          </h1>
-          <p className="text-muted-foreground mt-1">{description}</p>
-        </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 w-full xl:w-auto shrink-0">
-          {/* Search Bar */}
-          <div className="relative w-full sm:w-72">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <input
-              type="text"
-              placeholder="Search batches..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-border bg-background/60 backdrop-blur-xl text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all shadow-sm"
-            />
-          </div>
-
-          <div className="w-full sm:w-56">
-            <select
-              value={selectedTradeId}
-              onChange={(e) => setSelectedTradeId(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-border bg-background/60 backdrop-blur-xl text-foreground focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all shadow-sm appearance-none cursor-pointer"
-            >
-              <option value="">All Trades</option>
-              <option value="unassigned">Unassigned</option>
-              {TRADES.map((trade) => (
-                <option key={trade.id} value={trade.id}>
-                  {trade.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="w-full sm:w-48">
-            <select
-              value={selectedWeekday}
-              onChange={(e) => setSelectedWeekday(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-border bg-background/60 backdrop-blur-xl text-foreground focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all shadow-sm appearance-none cursor-pointer"
-            >
-              <option value="">All Days</option>
-              {WEEKDAYS.map((day) => (
-                <option key={day} value={day}>
-                  {day}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Create Batch Button (Admin Only) */}
-          {user?.role === "Admin" && (
-            <Link
-              to="/batches/create"
-              className="whitespace-nowrap px-6 py-2.5 bg-primary hover:opacity-90 text-primary-foreground font-medium rounded-xl transition-all shadow-lg shadow-primary/30 active:scale-95 flex items-center justify-center"
-            >
-              + Create Batch
-            </Link>
-          )}
-        </div>
-      </div>
-
-      {/* Content Section (Localized Loading) */}
-      {isLoading ? (
-        // Skeleton Loader grid
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3, 4, 5, 6].map((skeleton) => (
-            <div
-              key={skeleton}
-              className="h-32 p-6 rounded-2xl bg-card/40 backdrop-blur-xl border border-border shadow-sm animate-pulse"
-            >
-              <div className="flex justify-between items-start mb-4">
-                <div className="h-6 bg-muted rounded w-1/2"></div>
-                <div className="h-6 bg-muted rounded-full w-20"></div>
-              </div>
-              <div className="space-y-3">
-                <div className="h-4 bg-muted rounded w-1/3"></div>
-                <div className="h-4 bg-muted rounded w-2/3"></div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : filteredBatches.length === 0 ? (
-        // Empty State
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center py-20 bg-card/40 backdrop-blur-sm rounded-2xl border border-dashed border-border"
+      <div className="max-w-7xl mx-auto w-full flex flex-col h-full overflow-hidden relative">
+        
+        {/* Sticky Header Section */}
+        <div
+          className={`sticky top-0 z-40 flex flex-col xl:flex-row xl:items-end justify-between gap-4 px-6 md:px-10 pb-4 transition-all duration-300 ${
+            isScrolled
+              ? "bg-background/90 backdrop-blur-xl border-b border-border shadow-sm pt-4"
+              : "bg-background/90 backdrop-blur-xl border-b border-transparent pt-4 md:pt-8"
+          }`}
         >
-          <div className="mx-auto w-16 h-16 mb-4 rounded-full bg-muted flex items-center justify-center">
-            <Search className="h-8 w-8 text-muted-foreground/50" />
+          <div className="hidden md:block flex-1">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              {title}
+            </h1>
+            <p className="text-muted-foreground mt-1 text-sm">
+              {description}
+            </p>
           </div>
-          <h3 className="text-lg font-medium text-foreground mb-1">
-            No batches found
-          </h3>
-          <p className="text-muted-foreground">
-            {searchQuery
-              ? "Try adjusting your search terms."
-              : "There are currently no batches available."}
-          </p>
-        </motion.div>
-      ) : (
-        // Data Grid
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredBatches.map((batch, index) => (
-            <motion.div
-              key={batch._id}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.05 }}
-            >
-              <Link
-                to={`/batches/${generateSlug(batch.name)}`}
-                state={{
-                  batchId: batch._id,
-                  batchName: batch.name?.trim(),
-                }}
-                className="block h-full"
+
+          <div className="flex flex-wrap xl:flex-nowrap items-center gap-2 w-full xl:w-auto shrink-0">
+            {/* Search Bar */}
+            <div className="relative group w-full sm:w-64">
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                <Search className="h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+              </div>
+              <input
+                type="text"
+                placeholder="Search batches..."
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="block w-full pl-10 pr-10 py-2.5 bg-background border border-border hover:border-border/80 rounded-lg text-sm text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => handleSearchChange("")}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Trade Filter */}
+            <div className="w-[calc(50%-0.25rem)] sm:w-40 relative">
+              <select
+                value={selectedTradeId}
+                onChange={(e) => handleTradeChange(e.target.value)}
+                className="block w-full pl-3 pr-8 py-2.5 bg-background border border-border hover:border-border/80 rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm appearance-none cursor-pointer"
               >
-                <div className="h-full p-6 rounded-2xl bg-card/60 backdrop-blur-xl border border-border shadow-sm hover:shadow-xl hover:border-primary/50 transition-all duration-300 hover:-translate-y-1 group">
+                <option value="">All Trades</option>
+                <option value="unassigned">Unassigned</option>
+                {TRADES.map((trade) => (
+                  <option key={trade.id} value={trade.id}>
+                    {trade.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Weekday Filter */}
+            <div className="w-[calc(50%-0.25rem)] sm:w-36 relative">
+              <select
+                value={selectedWeekday}
+                onChange={(e) => handleWeekdayChange(e.target.value)}
+                className="block w-full pl-3 pr-8 py-2.5 bg-background border border-border hover:border-border/80 rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm appearance-none cursor-pointer"
+              >
+                <option value="">All Days</option>
+                {WEEKDAYS.map((day) => (
+                  <option key={day} value={day}>
+                    {day}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+              <button
+                onClick={handleManualRefresh}
+                disabled={isLoading}
+                title="Refresh Data"
+                className="px-3 py-2.5 bg-background border border-border rounded-lg text-foreground hover:bg-muted disabled:opacity-50 transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/20 flex items-center justify-center shrink-0"
+              >
+                <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin text-primary" : "text-muted-foreground"}`} />
+              </button>
+
+              {userRole === "Admin" && (
+                <Link
+                  to="/batches/create"
+                  className="flex-1 sm:flex-none whitespace-nowrap px-4 py-2.5 bg-primary hover:opacity-90 text-primary-foreground font-medium rounded-lg text-sm transition-all shadow-sm active:scale-95 flex items-center justify-center"
+                >
+                  + Create Batch
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Scrollable Container */}
+        <div 
+          className="flex-1 overflow-y-auto custom-scrollbar px-6 md:px-10 py-4 relative"
+          ref={scrollContainerRef}
+          onScroll={handleScroll}
+        >
+          {isLoading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((skeleton) => (
+                <div
+                  key={skeleton}
+                  className="h-[156px] p-6 rounded-xl bg-card border border-border shadow-sm animate-pulse"
+                >
                   <div className="flex justify-between items-start mb-4">
-                    <h2 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors truncate pr-2">
-                      {batch.name?.trim()}
-                    </h2>
-                    <span className="px-3 py-1 text-xs font-semibold rounded-full bg-primary/10 text-primary shrink-0">
-                      {batch.weekday}
-                    </span>
+                    <div className="h-5 bg-muted rounded w-2/3"></div>
+                    <div className="h-5 bg-muted rounded-full w-16"></div>
                   </div>
-
-                  <div className="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium bg-primary/10 text-primary border border-primary/20 mb-3">
-                    {getTradeLabel(batchTradeMap[batch._id])}
-                  </div>
-
-                  <div className="space-y-3 text-sm text-muted-foreground">
-                    <p className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 shrink-0 text-muted-foreground/70" />
-                      {formatTime12Hour(batch.startTime)} -{" "}
-                      {formatTime12Hour(batch.endTime)}
-                    </p>
-                    <p className="flex items-center gap-2">
-                      <User className="w-4 h-4 shrink-0 text-muted-foreground/70" />
-                      <span className="truncate">
-                        {Array.isArray(batch.teachers) &&
-                        batch.teachers.length > 0
-                          ? batch.teachers
-                              .map((t) => t.name || t.email || "Unknown")
-                              .join(", ")
-                          : batch.teacherEmail || "TBA"}
-                      </span>
-                    </p>
+                  <div className="h-6 w-24 bg-muted/60 rounded-lg mb-4"></div>
+                  <div className="space-y-3">
+                    <div className="h-4 bg-muted/50 rounded w-1/2"></div>
+                    <div className="h-4 bg-muted/50 rounded w-3/4"></div>
                   </div>
                 </div>
-              </Link>
-            </motion.div>
-          ))}
+              ))}
+            </div>
+          ) : filteredBatches.length === 0 ? (
+            <EmptyState isSearchActive={!!searchQuery || !!selectedTradeId || !!selectedWeekday} />
+          ) : (
+            <div className="flex flex-col relative pb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-2">
+                <AnimatePresence mode="popLayout">
+                  {paginatedBatches.map((batch, index) => (
+                    <motion.div
+                      key={batch._id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ delay: index * 0.05 }}
+                    >
+                      <Link
+                        to={`/batches/${generateSlug(batch.name)}`}
+                        state={{
+                          batchId: batch._id,
+                          batchName: batch.name?.trim(),
+                        }}
+                        className="block h-full"
+                      >
+                        <div className="h-full p-6 bg-card rounded-xl border border-border shadow-sm hover:border-primary/30 hover:shadow-md transition-all duration-200 group">
+                          <div className="flex justify-between items-start mb-3">
+                            <h2 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors truncate pr-2">
+                              {batch.name?.trim()}
+                            </h2>
+                            <span className="px-2.5 py-1 text-[10px] font-semibold rounded-md bg-primary/10 text-primary shrink-0 uppercase tracking-wider">
+                              {batch.weekday}
+                            </span>
+                          </div>
+
+                          <div className="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-medium bg-muted text-muted-foreground border border-border mb-4">
+                            {getTradeLabel(batchTradeMap[batch._id])}
+                          </div>
+
+                          <div className="space-y-2.5 text-sm text-muted-foreground border-t border-border/50 pt-4">
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-4 h-4 shrink-0 opacity-70" />
+                              <span className="font-medium text-foreground">
+                                {formatTime12Hour(batch.startTime)} - {formatTime12Hour(batch.endTime)}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <User className="w-4 h-4 shrink-0 opacity-70" />
+                              <span className="truncate font-medium text-foreground">
+                                {Array.isArray(batch.teachers) && batch.teachers.length > 0
+                                  ? batch.teachers
+                                      .map((t) => t.name || t.email || "Unknown")
+                                      .join(", ")
+                                  : batch.teacherEmail || "TBA"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            </div>
+          )}
+
+          {/* Mobile inline pagination */}
+          {!isLoading && totalPages > 1 && (
+            <div className="md:hidden mt-6 pt-6 pb-8 border-t border-border">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                startIndex={startIndex}
+                itemsPerPage={itemsPerPage}
+                totalItems={filteredBatches.length}
+                onPageChange={handlePageChange}
+              />
+            </div>
+          )}
         </div>
-      )}
+
+        {/* Desktop fixed pagination */}
+        {!isLoading && totalPages > 1 && (
+          <div className="hidden md:block bg-background px-6 md:px-10 py-3 border-t border-border z-30 shrink-0">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              startIndex={startIndex}
+              itemsPerPage={itemsPerPage}
+              totalItems={filteredBatches.length}
+              onPageChange={handlePageChange}
+            />
+          </div>
+        )}
+      </div>
+
+      <ScrollToTopButton isVisible={showTopBtn} onScrollTop={scrollToTop} />
     </motion.div>
   );
 };

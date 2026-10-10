@@ -25,7 +25,6 @@ import AttendancePage from "./pages/AttendancePage";
 import AttendanceStatus from "./pages/AttendanceStatus";
 import RegisterNewUser from "./pages/RegisterNewUser";
 import NotFoundPage from "./pages/NotFoundPage";
-import StudentProfile from "./pages/Student/StudentProfile";
 import TradeManagement from "./pages/Admin/TradeManagement";
 
 import BatchList from "./pages/Batch/BatchList";
@@ -38,7 +37,6 @@ import Fees from "./pages/Fees";
 import FeesYearlyStatus from "./pages/FeesYearlyStatus";
 import IdCard from "./components/IDcard/IdCard";
 import AccessDenied from "./pages/AccessDenied";
-import TeacherProfile from "./pages/Teacher/TeacherProfile";
 import { HelmetProvider } from "react-helmet-async";
 
 const App = () => {
@@ -97,6 +95,7 @@ const App = () => {
                   }
                 >
                   <Route path="/" element={<Dashboard />} />
+                  <Route path="/profile" element={<ProfilePage />} />
                   <Route path="/profile/:username" element={<ProfilePage />} />
 
                   {/* SHARED ROUTES NOW PLACED HERE */}
@@ -151,14 +150,14 @@ const App = () => {
                 <Route
                   element={<ProtectedRouteRoleBased allowedRoles={["Admin"]} />}
                 >
-                  <Route
+                  {/* <Route
                     path="/students/studentprofile"
                     element={<StudentProfile />}
-                  />
-                  <Route
+                  /> */}
+                  {/* <Route
                     path="/teachers/teacherprofile"
                     element={<TeacherProfile />}
-                  />
+                  /> */}
                   <Route path="/teachers" element={<AllTeachers />} />
                   <Route path="/fees" element={<Fees />} />
                   <Route path="/courses">
@@ -187,7 +186,7 @@ const App = () => {
                     <ProtectedRouteRoleBased allowedRoles={["Student"]} />
                   }
                 >
-                  <Route path="/student-profile" element={<StudentProfile />} />
+                  {/* <Route path="/student-profile" element={<StudentProfile />} /> */}
 
                   {/* <Route path="/course-certificate" /> */}
                   {/* <Route path="/admit-card" /> */}

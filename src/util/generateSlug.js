@@ -1,5 +1,5 @@
 export const generateSlug = (name) => {
-  return (name || "batch")
+  return (name || "Unknown")
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")

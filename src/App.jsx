@@ -97,6 +97,8 @@ const App = () => {
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/profile" element={<ProfilePage />} />
                   <Route path="/profile/:username" element={<ProfilePage />} />
+                  <Route path="/teachers/profile/:username" element={<ProfilePage />} />
+                  <Route path="/students/profile/:username" element={<ProfilePage />} />
 
                   {/* SHARED ROUTES NOW PLACED HERE */}
                   <Route

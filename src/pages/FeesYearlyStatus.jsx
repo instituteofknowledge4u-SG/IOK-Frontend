@@ -136,7 +136,12 @@ const FeesYearlyStatus = () => {
     } catch {
       sessionStorage.removeItem(FEES_YEARLY_SELECTION_KEY);
     }
-  }, [selectedMainClass, selectedBatch, setSelectedMainClass, setSelectedBatch]);
+  }, [
+    selectedMainClass,
+    selectedBatch,
+    setSelectedMainClass,
+    setSelectedBatch,
+  ]);
 
   useEffect(() => {
     if (!selectedMainClass && !selectedBatch) return;
@@ -1051,13 +1056,13 @@ const FeesYearlyStatus = () => {
                                       className="w-full h-full object-cover"
                                     />
                                   ) : (
-                                    (student.name?.charAt(0) || "S").toUpperCase()
+                                    (
+                                      student.name?.charAt(0) || "S"
+                                    ).toUpperCase()
                                   )}
                                 </div>
                                 <div className="min-w-0">
-                                  <div className="truncate">
-                                    {student.name}
-                                  </div>
+                                  <div className="truncate">{student.name}</div>
                                   <div className="text-xs text-muted-foreground print:text-gray-700">
                                     ID: {getStudentId(student)}
                                   </div>

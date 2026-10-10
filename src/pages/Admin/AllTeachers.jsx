@@ -380,7 +380,7 @@ const AllTeachers = () => {
   );
 
   const handleProfileClick = (teacher) => {
-    navigate(`/profile/${generateSlug(teacher?.name)}`, {
+    navigate(`/teachers/profile/${generateSlug(teacher?.name)}`, {
       state: {
         userId: teacher?._id,
         userData: teacher,

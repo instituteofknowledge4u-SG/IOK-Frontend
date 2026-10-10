@@ -486,7 +486,7 @@ const AttendanceStatus = () => {
         <title>IOK - Attendance status</title>
       </Helmet>
       <div className="max-w-7xl mx-auto space-y-6">
-        <BackButton details="Track batch attendance by course, batch, month, and year." />
+        {/* <BackButton details="Track batch attendance by course, batch, month, and year." /> */}
 
         <div className="bg-card border border-border rounded-2xl p-6 shadow-sm">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

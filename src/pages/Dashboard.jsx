@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -29,8 +29,6 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-// A vibrant, mode-agnostic color palette (Tailwind 500 series)
-// These look excellent on both Light (white) and Dark (dark gray/black) backgrounds
 const CHART_COLORS = [
   "#3b82f6", // Blue
   "#10b981", // Emerald
@@ -44,35 +42,12 @@ const CHART_COLORS = [
 // REUSABLE UI COMPONENTS (CARDS & SKELETONS)
 // ==========================================
 
-const KpiCard = ({
-  title,
-  value,
-  icon: Icon,
-  trend,
-  colorType = "primary",
-  isLoading,
-}) => {
+const KpiCard = ({ title, value, icon: Icon, trend, colorType = "primary", isLoading }) => {
   const colorStyles = {
-    primary: {
-      bg: "bg-primary/10",
-      text: "text-primary",
-      border: "border-primary/20",
-    },
-    success: {
-      bg: "bg-success/10",
-      text: "text-success",
-      border: "border-success/20",
-    },
-    warning: {
-      bg: "bg-warning/10",
-      text: "text-warning",
-      border: "border-warning/20",
-    },
-    destructive: {
-      bg: "bg-destructive/10",
-      text: "text-destructive",
-      border: "border-destructive/20",
-    },
+    primary: { bg: "bg-primary/10", text: "text-primary", border: "border-primary/20" },
+    success: { bg: "bg-success/10", text: "text-success", border: "border-success/20" },
+    warning: { bg: "bg-warning/10", text: "text-warning", border: "border-warning/20" },
+    destructive: { bg: "bg-destructive/10", text: "text-destructive", border: "border-destructive/20" },
   };
 
   const style = colorStyles[colorType] || colorStyles.primary;
@@ -84,18 +59,14 @@ const KpiCard = ({
     >
       <div className="flex justify-between items-start mb-4">
         <div>
-          <p className="text-sm font-medium text-muted-foreground mb-1">
-            {title}
-          </p>
+          <p className="text-sm font-medium text-muted-foreground mb-1">{title}</p>
           {isLoading ? (
             <div className="h-8 w-20 bg-muted animate-pulse rounded-md mt-1"></div>
           ) : (
             <h3 className="text-3xl font-bold text-foreground">{value}</h3>
           )}
         </div>
-        <div
-          className={`p-3 rounded-xl border ${style.bg} ${style.border} ${style.text}`}
-        >
+        <div className={`p-3 rounded-xl border ${style.bg} ${style.border} ${style.text}`}>
           <Icon size={24} />
         </div>
       </div>
@@ -124,46 +95,24 @@ const SectionCard = ({ title, icon: Icon, children, action }) => (
 );
 
 // --- Skeleton Loaders ---
-
 const TableSkeleton = () => (
   <div className="overflow-x-auto rounded-md border border-border/50">
     <table className="w-full text-sm text-left border-collapse">
       <thead className="text-muted-foreground bg-muted/30 border-b border-border/50">
         <tr>
-          {[
-            "Student ID",
-            "Student Name",
-            "Address",
-            "Course",
-            "Admission Date",
-          ].map((th) => (
-            <th key={th} className="py-3 px-4 font-semibold whitespace-nowrap">
-              {th}
-            </th>
+          {["Student ID", "Student Name", "Address", "Course", "Admission Date"].map((th) => (
+            <th key={th} className="py-3 px-4 font-semibold whitespace-nowrap">{th}</th>
           ))}
         </tr>
       </thead>
       <tbody className="divide-y divide-border/50">
         {[1, 2, 3, 4, 5].map((i) => (
           <tr key={i} className="animate-pulse">
-            <td className="py-3 px-4">
-              <div className="h-4 w-4 bg-muted rounded"></div>
-            </td>
-            <td className="py-3 px-4">
-              <div className="h-4 w-32 bg-muted rounded"></div>
-            </td>
-            <td className="py-3 px-4">
-              <div className="h-4 w-20 bg-muted rounded"></div>
-            </td>
-            <td className="py-3 px-4">
-              <div className="h-4 w-40 bg-muted rounded"></div>
-            </td>
-            <td className="py-3 px-4">
-              <div className="h-4 w-24 bg-muted rounded"></div>
-            </td>
-            <td className="py-3 px-4">
-              <div className="h-4 w-24 bg-muted rounded"></div>
-            </td>
+            <td className="py-3 px-4"><div className="h-4 w-4 bg-muted rounded"></div></td>
+            <td className="py-3 px-4"><div className="h-4 w-32 bg-muted rounded"></div></td>
+            <td className="py-3 px-4"><div className="h-4 w-20 bg-muted rounded"></div></td>
+            <td className="py-3 px-4"><div className="h-4 w-40 bg-muted rounded"></div></td>
+            <td className="py-3 px-4"><div className="h-4 w-24 bg-muted rounded"></div></td>
           </tr>
         ))}
       </tbody>
@@ -180,10 +129,7 @@ const ChartSkeleton = () => (
 const TeacherBatchSkeleton = () => (
   <div className="space-y-3">
     {[1, 2, 3].map((i) => (
-      <div
-        key={i}
-        className="p-4 border border-border rounded-xl shadow-sm animate-pulse"
-      >
+      <div key={i} className="p-4 border border-border rounded-xl shadow-sm animate-pulse">
         <div className="flex justify-between items-start mb-2">
           <div className="flex flex-col gap-2">
             <div className="h-5 w-32 bg-muted rounded"></div>
@@ -199,10 +145,7 @@ const TeacherBatchSkeleton = () => (
 const StudentScheduleSkeleton = () => (
   <div className="space-y-3">
     {[1, 2, 3].map((i) => (
-      <div
-        key={i}
-        className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-muted/30 border border-border rounded-xl shadow-sm animate-pulse"
-      >
+      <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-muted/30 border border-border rounded-xl shadow-sm animate-pulse">
         <div className="flex items-center gap-4">
           <div className="h-12 w-12 rounded-lg bg-muted border border-border/50 shrink-0"></div>
           <div className="flex flex-col gap-2">
@@ -223,24 +166,19 @@ const StudentScheduleSkeleton = () => (
 const AdminDashboard = ({
   navigate,
   students,
-  batches,
   isLoading,
   currentStudentsCount,
   feesDueCount,
   recentEnrollments,
-  isMetricsLoading,
 }) => {
-  const recentStudents = recentEnrollments || [];
-
-  // Generate Monthly Enrollment Data for the last 6 months
+  // Generate Monthly Enrollment Data based on memoized students
   const monthlyChartData = useMemo(() => {
     if (!students || students.length === 0) return { data: [], total: 0 };
 
     const monthsData = [];
     const today = new Date();
-    let totalRecentEnrollments = 0; // BUG FIX: Track if we have > 0 total data to prevent Recharts crash
+    let totalRecentEnrollments = 0; 
 
-    // Initialize the last 6 months (including current)
     for (let i = 5; i >= 0; i--) {
       const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
       monthsData.push({
@@ -251,15 +189,11 @@ const AdminDashboard = ({
       });
     }
 
-    // Populate data
     students.forEach((student) => {
       if (!student.createdAt) return;
       const studentDate = new Date(student.createdAt);
-
       const mIndex = monthsData.findIndex(
-        (m) =>
-          m.month === studentDate.getMonth() &&
-          m.year === studentDate.getFullYear(),
+        (m) => m.month === studentDate.getMonth() && m.year === studentDate.getFullYear()
       );
       if (mIndex !== -1) {
         monthsData[mIndex].Enrollments += 1;
@@ -271,11 +205,7 @@ const AdminDashboard = ({
   }, [students]);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
-    >
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <KpiCard
@@ -287,14 +217,14 @@ const AdminDashboard = ({
           trend={{ value: "All-time", label: "registered" }}
         />
         <KpiCard
-          isLoading={isMetricsLoading}
+          isLoading={isLoading}
           title="Current Students"
           value={currentStudentsCount}
           icon={Users}
           colorType="success"
         />
         <KpiCard
-          isLoading={isMetricsLoading}
+          isLoading={isLoading}
           title="Fees Due Students"
           value={feesDueCount}
           icon={Layers}
@@ -326,49 +256,32 @@ const AdminDashboard = ({
 
       {/* Data Widgets */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Table Widget - Takes up 2 columns out of 3 */}
         <div className="lg:col-span-2">
           <SectionCard title="Recent Enrollments" icon={Users}>
-            {isLoading || isMetricsLoading ? (
+            {isLoading ? (
               <TableSkeleton />
-            ) : recentStudents.length > 0 ? (
+            ) : recentEnrollments.length > 0 ? (
               <div className="overflow-x-auto rounded-md border border-border/50">
                 <table className="w-full text-sm text-left border-collapse">
                   <thead className="text-muted-foreground bg-muted/30 border-b border-border/50">
                     <tr>
-                      <th className="py-3 px-4 font-semibold whitespace-nowrap">
-                        Student ID
-                      </th>
-                      <th className="py-3 px-4 font-semibold whitespace-nowrap">
-                        Student Name
-                      </th>
-                      <th className="py-3 px-4 font-semibold whitespace-nowrap">
-                        Address
-                      </th>
-                      <th className="py-3 px-4 font-semibold whitespace-nowrap">
-                        Course
-                      </th>
-                      <th className="py-3 px-4 font-semibold whitespace-nowrap">
-                        Admission Date
-                      </th>
+                      <th className="py-3 px-4 font-semibold whitespace-nowrap">Student ID</th>
+                      <th className="py-3 px-4 font-semibold whitespace-nowrap">Student Name</th>
+                      <th className="py-3 px-4 font-semibold whitespace-nowrap">Address</th>
+                      <th className="py-3 px-4 font-semibold whitespace-nowrap">Course</th>
+                      <th className="py-3 px-4 font-semibold whitespace-nowrap">Admission Date</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/50">
-                    {recentStudents.map((student) => (
-                      <tr
-                        key={student._id}
-                        className="hover:bg-muted/30 transition-colors group"
-                      >
+                    {recentEnrollments.map((student) => (
+                      <tr key={student._id} className="hover:bg-muted/30 transition-colors group">
                         <td className="py-3 px-4 text-muted-foreground font-mono whitespace-nowrap">
                           {getStudentId(student) || "-"}
                         </td>
                         <td className="py-3 px-4 text-foreground font-medium whitespace-nowrap">
                           {student.name}
                         </td>
-                        <td
-                          className="py-3 px-4 text-muted-foreground max-w-[200px] truncate"
-                          title={student.address}
-                        >
+                        <td className="py-3 px-4 text-muted-foreground max-w-[200px] truncate" title={student.address}>
                           {student.address || "-"}
                         </td>
                         <td className="py-3 px-4 text-muted-foreground whitespace-nowrap">
@@ -400,10 +313,9 @@ const AdminDashboard = ({
           </SectionCard>
         </div>
 
-        {/* Chart Widget - Takes up remaining 1 column */}
         <div className="lg:col-span-1">
           <SectionCard title="Enrollment Trends Monthly" icon={TrendingUp}>
-            {isLoading || isMetricsLoading ? (
+            {isLoading ? (
               <ChartSkeleton />
             ) : monthlyChartData.total > 0 ? (
               <div className="h-[300px] w-full pt-4">
@@ -418,15 +330,12 @@ const AdminDashboard = ({
                       paddingAngle={2}
                       dataKey="Enrollments"
                       nameKey="name"
-                      stroke="hsl(var(--card))" // Seamlessly blends lines with the card background
+                      stroke="hsl(var(--card))"
                       strokeWidth={2}
                       animationDuration={1500}
                     >
                       {monthlyChartData.data.map((entry, index) => (
-                        <Cell
-                          key={`cell-${index}`}
-                          fill={CHART_COLORS[index % CHART_COLORS.length]}
-                        />
+                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                       ))}
                     </Pie>
                     <Tooltip
@@ -435,19 +344,16 @@ const AdminDashboard = ({
                         borderColor: "hsl(var(--border))",
                         borderRadius: "8px",
                         color: "hsl(var(--foreground))",
-                        boxShadow:
-                          "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+                        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
                       }}
-                      itemStyle={{ fontWeight: 600 }} // Color naturally maps to the slice color
+                      itemStyle={{ fontWeight: 600 }}
                     />
                     <Legend
                       verticalAlign="bottom"
                       height={36}
                       iconType="circle"
                       formatter={(value) => (
-                        <span className="text-muted-foreground text-sm font-medium ml-1">
-                          {value}
-                        </span>
+                        <span className="text-muted-foreground text-sm font-medium ml-1">{value}</span>
                       )}
                     />
                   </PieChart>
@@ -467,15 +373,12 @@ const AdminDashboard = ({
 };
 
 const TeacherDashboard = ({ navigate, user, batches, isLoading }) => {
-  const myBatches =
-    batches?.filter((b) => b.teacherEmail === user?.email) || [];
+  const myBatches = useMemo(() => {
+    return batches?.filter((b) => b.teacherEmail === user?.email) || [];
+  }, [batches, user?.email]);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
-    >
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
         <KpiCard
           isLoading={isLoading}
@@ -487,10 +390,7 @@ const TeacherDashboard = ({ navigate, user, batches, isLoading }) => {
         <KpiCard
           isLoading={isLoading}
           title="Total Students"
-          value={myBatches.reduce(
-            (acc, curr) => acc + (curr.students?.length || 0),
-            0,
-          )}
+          value={myBatches.reduce((acc, curr) => acc + (curr.students?.length || 0), 0)}
           icon={Users}
           colorType="success"
         />
@@ -514,11 +414,7 @@ const TeacherDashboard = ({ navigate, user, batches, isLoading }) => {
               {myBatches.map((batch) => (
                 <div
                   key={batch._id}
-                  onClick={() =>
-                    navigate(`/batches/${batch._id}`, {
-                      state: { batchId: batch._id },
-                    })
-                  }
+                  onClick={() => navigate(`/batches/${batch._id}`, { state: { batchId: batch._id } })}
                   className="p-4 border border-border rounded-xl hover:border-primary/50 hover:bg-muted/30 transition-all cursor-pointer group shadow-sm"
                 >
                   <div className="flex justify-between items-start mb-2">
@@ -527,8 +423,7 @@ const TeacherDashboard = ({ navigate, user, batches, isLoading }) => {
                         {batch.name}
                       </h4>
                       <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                        <Clock size={12} /> {batch.weekday} • {batch.startTime}{" "}
-                        - {batch.endTime}
+                        <Clock size={12} /> {batch.weekday} • {batch.startTime} - {batch.endTime}
                       </p>
                     </div>
                     <span className="text-xs font-medium bg-primary/10 text-primary px-2 py-1 rounded-md border border-primary/20 shrink-0">
@@ -539,9 +434,7 @@ const TeacherDashboard = ({ navigate, user, batches, isLoading }) => {
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              No assigned batches found.
-            </div>
+            <div className="text-center py-8 text-muted-foreground">No assigned batches found.</div>
           )}
         </SectionCard>
       </div>
@@ -549,24 +442,20 @@ const TeacherDashboard = ({ navigate, user, batches, isLoading }) => {
   );
 };
 
-const StudentDashboard = ({ navigate, user, isLoading }) => {
+const StudentDashboard = ({ user, isLoading }) => {
   const currentDate = new Date();
-  const activeCoursesCount =
-    user?.mainClasses?.filter((cls) => {
+  
+  const activeCoursesCount = useMemo(() => {
+    return user?.mainClasses?.filter((cls) => {
       if (!cls.startDate || !cls.endDate) return false;
-      const start = new Date(cls.startDate);
-      const end = new Date(cls.endDate);
-      return currentDate >= start && currentDate <= end;
+      return currentDate >= new Date(cls.startDate) && currentDate <= new Date(cls.endDate);
     }).length || 0;
+  }, [user?.mainClasses, currentDate]);
 
   const myBatches = user?.batches || [];
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-6"
-    >
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
         <KpiCard
           isLoading={isLoading}
@@ -585,21 +474,15 @@ const StudentDashboard = ({ navigate, user, isLoading }) => {
             ) : myBatches.length > 0 ? (
               <div className="space-y-3">
                 {myBatches.map((batch) => (
-                  <div
-                    key={batch._id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-muted/30 border border-border rounded-xl shadow-sm"
-                  >
+                  <div key={batch._id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-muted/30 border border-border rounded-xl shadow-sm">
                     <div className="flex items-center gap-4">
                       <div className="h-12 w-12 rounded-lg bg-primary/10 text-primary flex flex-col items-center justify-center font-bold border border-primary/20 shrink-0">
                         <Calendar size={20} />
                       </div>
                       <div>
-                        <h4 className="font-bold text-foreground">
-                          {batch.name}
-                        </h4>
+                        <h4 className="font-bold text-foreground">{batch.name}</h4>
                         <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-                          <Clock size={12} /> {batch.weekday} •{" "}
-                          {batch.startTime} - {batch.endTime}
+                          <Clock size={12} /> {batch.weekday} • {batch.startTime} - {batch.endTime}
                         </p>
                       </div>
                     </div>
@@ -636,146 +519,105 @@ export default function Dashboard() {
   const studentProgress = useUserStore((state) => state.studentProgress);
   const getStudentProgress = useUserStore((state) => state.getStudentProgress);
 
-  const [currentStudentsCount, setCurrentStudentsCount] = useState(0);
-  const [feesDueCount, setFeesDueCount] = useState(0);
-  const [recentEnrollments, setRecentEnrollments] = useState([]);
-  const [metricsLoading, setMetricsLoading] = useState(false);
+  const isLoading = userLoading || batchLoading || classLoading;
 
-  const isLoading = userLoading || batchLoading;
-
-  // Fetch critical dashboard data on mount
+  // 1. MEMOIZED CACHE-FIRST FETCHING
+  // Only trigger network requests if the store arrays are empty
   useEffect(() => {
     if (role === "Admin") {
-      getStudents();
-      getClasses();
+      if (!students || students.length === 0) getStudents();
+      if (!allClass || allClass.length === 0) getClasses();
     }
-    fetchBatches();
-  }, [role, getStudents, getClasses, fetchBatches]);
+    if (!batches || batches.length === 0) fetchBatches();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [role]); 
 
+  // Fetch missing student progress silently in the background
   useEffect(() => {
     if (role !== "Admin" || !students?.length) return;
 
-    let isMounted = true;
-    const fetchMetrics = async () => {
-      setMetricsLoading(true);
-      try {
-        const allMainClasses = allClass || [];
-        const mainClassMap = new Map(
-          allMainClasses.map((cls) => [cls._id, cls.name]),
-        );
-
-        const progressFetches = [];
-        students.forEach((student) => {
-          const studentId = student._id;
-          const classIds = (student.mainClasses || []).map(
-            (cls) => cls._id || cls,
-          );
-
-          classIds.forEach((classId) => {
-            const key = `${studentId}_${classId}`;
-            if (!studentProgress[key]) {
-              progressFetches.push(getStudentProgress(studentId, classId));
-            }
-          });
-        });
-
-        await Promise.all(progressFetches);
-
-        const updatedProgress = useUserStore.getState().studentProgress;
-
-        const activeStudents = students.filter((student) => {
-          const classIds = (student.mainClasses || []).map(
-            (cls) => cls._id || cls,
-          );
-
-          if (classIds.length === 0) return true;
-
-          return classIds.some((classId) => {
-            const key = `${student._id}_${classId}`;
-            const progress = updatedProgress[key];
-
-            const isCompleted =
-              progress?.certificateIssued === true ||
-              progress?.completed === true ||
-              progress?.status?.toLowerCase() === "completed";
-
-            return !isCompleted;
-          });
-        });
-
-        const recent = [...students]
-          .sort(
-            (a, b) =>
-              new Date(b.createdAt || 0).getTime() -
-              new Date(a.createdAt || 0).getTime(),
-          )
-          .slice(0, 6)
-          .map((student) => {
-            const classLabels = (student.mainClasses || [])
-              .map((cls) => mainClassMap.get(cls._id || cls))
-              .filter(Boolean)
-              .join(", ");
-
-            return {
-              ...student,
-              courses: classLabels,
-              admissionDate: student.createdAt
-                ? new Date(student.createdAt).toLocaleDateString("en-IN", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })
-                : "-",
-            };
-          });
-
-        const feesDueStudents = new Set();
-        // Fees due block (currently commented out intentionally by user)
-        // ...
-
-        if (isMounted) {
-          setCurrentStudentsCount(activeStudents.length);
-          setRecentEnrollments(recent);
-          setFeesDueCount(feesDueStudents.size);
+    students.forEach((student) => {
+      const classIds = (student.mainClasses || []).map((cls) => cls._id || cls);
+      classIds.forEach((classId) => {
+        const key = `${student._id}_${classId}`;
+        // If data isn't in Zustand yet, fetch it
+        if (studentProgress[key] === undefined) {
+          getStudentProgress(student._id, classId);
         }
-      } finally {
-        if (isMounted) {
-          setMetricsLoading(false);
-        }
-      }
-    };
+      });
+    });
+  }, [students, role, getStudentProgress]); // Removed studentProgress from deps to prevent infinite loops
 
-    fetchMetrics();
+  // 2. MEMOIZED METRICS (Replaces `useState` and manual updates)
+  const recentEnrollments = useMemo(() => {
+    if (!students || !allClass) return [];
+    
+    const mainClassMap = new Map(allClass.map((cls) => [cls._id, cls.name]));
+    
+    return [...students]
+      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+      .slice(0, 6)
+      .map((student) => {
+        const classLabels = (student.mainClasses || [])
+          .map((cls) => mainClassMap.get(cls._id || cls))
+          .filter(Boolean)
+          .join(", ");
 
-    return () => {
-      isMounted = false;
-    };
-  }, [role, students, allClass, getStudentProgress, studentProgress]);
+        return {
+          ...student,
+          courses: classLabels,
+          admissionDate: student.createdAt
+            ? new Date(student.createdAt).toLocaleDateString("en-IN", {
+                day: "numeric", month: "short", year: "numeric",
+              })
+            : "-",
+        };
+      });
+  }, [students, allClass]);
+
+  const currentStudentsCount = useMemo(() => {
+    if (!students) return 0;
+    
+    return students.filter((student) => {
+      const classIds = (student.mainClasses || []).map((cls) => cls._id || cls);
+      if (classIds.length === 0) return true;
+
+      return classIds.some((classId) => {
+        const key = `${student._id}_${classId}`;
+        const progress = studentProgress[key];
+        const isCompleted =
+          progress?.certificateIssued === true ||
+          progress?.completed === true ||
+          progress?.status?.toLowerCase() === "completed";
+        return !isCompleted;
+      });
+    }).length;
+  }, [students, studentProgress]);
+
+  const feesDueCount = 0; // Keeping this static as per original code behavior
 
   // Page entry animations
   const pageVariants = {
     initial: { opacity: 0, y: 15 },
-    animate: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.4, ease: "easeOut" },
-    },
+    animate: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
     exit: { opacity: 0, y: -15 },
   };
 
   return (
+    // 3. UI BUG FIX: Removed min-h-screen and p-4 md:p-8 padding that caused double scrollbars
     <motion.div
       initial="initial"
       animate="animate"
       exit="exit"
       variants={pageVariants}
-      className="min-h-screen bg-background text-foreground p-4 md:p-8 transition-colors duration-300"
+      className="w-full flex flex-col gap-6"
     >
       <Helmet>
         <title>IOK - Dashboard</title>
       </Helmet>
-      {/* Dynamic Header based on Role */}
-      <div className="mb-8">
+
+      {/* Dynamic Header */}
+      <div>
         <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-foreground mb-2 capitalize">
           Welcome back, {user?.name || "User"} 👋
         </h1>
@@ -784,17 +626,14 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* Conditional Rendering based on Role */}
       {role === "Admin" && (
         <AdminDashboard
           navigate={navigate}
           students={students}
-          batches={batches}
           isLoading={isLoading}
           currentStudentsCount={currentStudentsCount}
           feesDueCount={feesDueCount}
           recentEnrollments={recentEnrollments}
-          isMetricsLoading={metricsLoading || classLoading}
         />
       )}
       {role === "Teacher" && (
@@ -806,10 +645,9 @@ export default function Dashboard() {
         />
       )}
       {role === "Student" && (
-        <StudentDashboard
-          navigate={navigate}
-          user={user}
-          isLoading={isLoading}
+        <StudentDashboard 
+          user={user} 
+          isLoading={isLoading} 
         />
       )}
     </motion.div>

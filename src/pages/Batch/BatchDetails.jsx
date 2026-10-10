@@ -187,13 +187,11 @@ const StudentRow = ({
     };
   }, [baseStudent._id, getUserById]);
 
-  // Navigation Function
-  const handleViewProfile = () => {
-    navigate("/students/studentprofile", {
+  const handleViewProfile = (details) => {
+    navigate(`/profile/${generateSlug(details?.name)}`, {
       state: {
         userId: details._id,
-        studentId: details._id,
-        userData: details, // Using the freshly fetched details
+        userData: details,
       },
     });
   };
@@ -232,7 +230,9 @@ const StudentRow = ({
       {/* Clickable Area for Profile Navigation */}
       <div
         className={`flex items-center gap-4 flex-1 ${canViewProfile ? "cursor-pointer" : ""}`}
-        onClick={canViewProfile ? handleViewProfile : undefined}
+        onClick={() =>
+          canViewProfile ? handleViewProfile(details) : undefined
+        }
         title={canViewProfile ? "View Student Profile" : "Student Details"}
       >
         <div

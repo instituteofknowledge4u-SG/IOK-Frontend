@@ -364,7 +364,7 @@ export const StudentCard = React.memo(
 
     const handleCardClick = (student) => {
       if (isTeacher) return;
-      navigate(`/profile/${generateSlug(student?.name)}`, {
+      navigate(`/students/profile/${generateSlug(student?.name)}`, {
         state: {
           userId: student?._id,
           userData: student,

@@ -17,6 +17,7 @@ import {
 import useBatchStore from "../../stores/useBatchStore";
 import useAuthStore from "../../stores/useAuthStore";
 import useTradeStore from "../../stores/useTradeStore";
+import useUserStore from "../../stores/useUserStore";
 import { generateSlug } from "../../util/generateSlug";
 import { TRADES, getTradeLabel } from "../../constants/trades";
 import { filterBatchesForTeacher } from "../../util/teacherAccessControl";
@@ -71,6 +72,133 @@ const formatTime12Hour = (time) => {
 
   return `${hours12}:${String(minutes).padStart(2, "0")} ${meridiem}`;
 };
+
+// --- Avatar Component & Helpers (Start + End Letter Initials & Multi-Color Gradients) ---
+const failedUrlCache = new Set();
+
+const AVATAR_COLOR_PALETTES = [
+  "bg-gradient-to-br from-rose-500 to-orange-500 text-white border-rose-400/30",
+  "bg-gradient-to-br from-violet-600 to-indigo-600 text-white border-violet-400/30",
+  "bg-gradient-to-br from-emerald-500 to-teal-600 text-white border-emerald-400/30",
+  "bg-gradient-to-br from-sky-500 to-blue-600 text-white border-sky-400/30",
+  "bg-gradient-to-br from-amber-500 to-orange-600 text-white border-amber-400/30",
+  "bg-gradient-to-br from-fuchsia-500 to-pink-600 text-white border-fuchsia-400/30",
+  "bg-gradient-to-br from-cyan-500 to-teal-600 text-white border-cyan-400/30",
+  "bg-gradient-to-br from-purple-600 to-pink-500 text-white border-purple-400/30",
+  "bg-gradient-to-br from-blue-600 to-indigo-700 text-white border-blue-400/30",
+  "bg-gradient-to-br from-lime-500 to-emerald-600 text-white border-lime-400/30",
+  "bg-gradient-to-br from-red-500 to-rose-600 text-white border-red-400/30",
+  "bg-gradient-to-br from-teal-500 to-emerald-700 text-white border-teal-400/30",
+  "bg-gradient-to-br from-indigo-500 to-purple-600 text-white border-indigo-400/30",
+  "bg-gradient-to-br from-pink-500 to-rose-500 text-white border-pink-400/30",
+];
+
+const getStartAndEndInitials = (name, email) => {
+  const rawSource = (name || "").trim();
+  const cleanChars = Array.from(rawSource.replace(/[^\p{L}\p{N}]/gu, ""));
+
+  if (cleanChars.length >= 2) {
+    return `${cleanChars[0]}${cleanChars[cleanChars.length - 1]}`.toUpperCase();
+  }
+  if (cleanChars.length === 1) {
+    return cleanChars[0].toUpperCase();
+  }
+
+  if (email && typeof email === "string") {
+    const emailLocal = email.split("@")[0].replace(/[^a-zA-Z0-9]/g, "");
+    if (emailLocal.length >= 2) {
+      return `${emailLocal[0]}${emailLocal[emailLocal.length - 1]}`.toUpperCase();
+    }
+    if (emailLocal.length === 1) {
+      return emailLocal[0].toUpperCase();
+    }
+  }
+
+  return "U";
+};
+
+const getAvatarColorPalette = (seedString = "") => {
+  const str = String(seedString || "default").trim().toLowerCase();
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % AVATAR_COLOR_PALETTES.length;
+  return AVATAR_COLOR_PALETTES[index];
+};
+
+const resolveAvatarUrl = (src, user) => {
+  const candidates = [
+    src,
+    user?.profilePic,
+    user?.profilePicture,
+    user?.avatar,
+    user?.photo,
+    user?.image,
+  ];
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.trim() !== "") {
+      return candidate.trim();
+    }
+  }
+  return null;
+};
+
+const UserAvatar = React.memo(({ user, src, name, email, className = "w-6 h-6 text-[10px]" }) => {
+  const resolvedName = name ?? user?.name ?? "";
+  const resolvedEmail = email ?? user?.email ?? "";
+  const resolvedSrc = useMemo(() => resolveAvatarUrl(src, user), [src, user]);
+
+  const [imgError, setImgError] = useState(() =>
+    resolvedSrc ? failedUrlCache.has(resolvedSrc) : false
+  );
+
+  useEffect(() => {
+    setImgError(resolvedSrc ? failedUrlCache.has(resolvedSrc) : false);
+  }, [resolvedSrc]);
+
+  const initials = useMemo(
+    () => getStartAndEndInitials(resolvedName, resolvedEmail),
+    [resolvedName, resolvedEmail]
+  );
+
+  const colorPalette = useMemo(
+    () =>
+      getAvatarColorPalette(
+        resolvedName || resolvedEmail || user?._id || user?.id
+      ),
+    [resolvedName, resolvedEmail, user?._id, user?.id]
+  );
+
+  const shouldShowImage = Boolean(resolvedSrc && !imgError);
+
+  const handleImageError = () => {
+    if (resolvedSrc) failedUrlCache.add(resolvedSrc);
+    setImgError(true);
+  };
+
+  return (
+    <div
+      title={resolvedName || resolvedEmail || "Instructor"}
+      className={`relative inline-flex items-center justify-center shrink-0 select-none overflow-hidden rounded-full font-extrabold tracking-wider border shadow-sm transition-all ${
+        shouldShowImage ? "bg-muted border-border" : colorPalette
+      } ${className}`}
+    >
+      {shouldShowImage ? (
+        <img
+          src={resolvedSrc}
+          alt={resolvedName || "Avatar"}
+          loading="lazy"
+          onError={handleImageError}
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <span className="leading-none drop-shadow-sm">{initials}</span>
+      )}
+    </div>
+  );
+});
+UserAvatar.displayName = "UserAvatar";
 
 // ==========================================
 // 2. SHARED UI COMPONENTS
@@ -252,6 +380,59 @@ const BatchList = () => {
   const userRole = useAuthStore((state) => state.userRole);
   const batchTradeMap = useTradeStore((state) => state.batchTradeMap);
 
+  // Cached teachers from useUserStore to hydrate instructor avatars
+  const rawTeachers = useUserStore((state) => state.teachers);
+  const getTeachers = useUserStore((state) => state.getTeachers);
+
+  const teachersList = useMemo(
+    () => (Array.isArray(rawTeachers) ? rawTeachers : rawTeachers?.data || []),
+    [rawTeachers]
+  );
+
+  const teachersCacheMap = useMemo(() => {
+    const byId = new Map();
+    const byEmail = new Map();
+    const byName = new Map();
+    teachersList.forEach((t) => {
+      if (!t) return;
+      if (t._id) byId.set(String(t._id), t);
+      if (t.email) byEmail.set(t.email.toLowerCase(), t);
+      if (t.name) byName.set(t.name.toLowerCase(), t);
+    });
+    return { byId, byEmail, byName };
+  }, [teachersList]);
+
+  const resolveBatchTeachers = useCallback(
+    (batch) => {
+      if (Array.isArray(batch.teachers) && batch.teachers.length > 0) {
+        return batch.teachers.map((t) => {
+          if (typeof t === "string") {
+            return (
+              teachersCacheMap.byId.get(String(t)) || {
+                _id: t,
+                name: "Unknown",
+              }
+            );
+          }
+          const cached =
+            (t?._id && teachersCacheMap.byId.get(String(t._id))) ||
+            (t?.email &&
+              teachersCacheMap.byEmail.get(t.email.toLowerCase())) ||
+            (t?.name && teachersCacheMap.byName.get(t.name.toLowerCase()));
+          return { ...t, ...(cached || {}) };
+        });
+      }
+      if (batch.teacherEmail) {
+        const cached = teachersCacheMap.byEmail.get(
+          batch.teacherEmail.toLowerCase()
+        );
+        return [cached || { email: batch.teacherEmail, name: batch.teacherEmail }];
+      }
+      return [];
+    },
+    [teachersCacheMap]
+  );
+
   // Initialize states with values from sessionStorage if they exist
   const [searchQuery, setSearchQuery] = useState(() => sessionStorage.getItem("batchDirectory_search") || "");
   const [selectedTradeId, setSelectedTradeId] = useState(() => sessionStorage.getItem("batchDirectory_trade") || "");
@@ -271,6 +452,9 @@ const BatchList = () => {
   useEffect(() => {
     if (!batches || batches.length === 0) {
       fetchBatches();
+    }
+    if (getTeachers && teachersList.length === 0 && userRole !== "Student") {
+      getTeachers();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -574,59 +758,77 @@ const BatchList = () => {
             <div className="flex flex-col relative pb-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-2">
                 <AnimatePresence mode="popLayout">
-                  {paginatedBatches.map((batch, index) => (
-                    <motion.div
-                      key={batch._id}
-                      layout
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      transition={{ delay: index * 0.05 }}
-                    >
-                      <Link
-                        to={`/batches/${generateSlug(batch.name)}`}
-                        state={{
-                          batchId: batch._id,
-                          batchName: batch.name?.trim(),
-                        }}
-                        className="block h-full"
+                  {paginatedBatches.map((batch, index) => {
+                    const resolvedTeachers = resolveBatchTeachers(batch);
+
+                    return (
+                      <motion.div
+                        key={batch._id}
+                        layout
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ delay: index * 0.05 }}
                       >
-                        <div className="h-full p-6 bg-card rounded-xl border border-border shadow-sm hover:border-primary/30 hover:shadow-md transition-all duration-200 group">
-                          <div className="flex justify-between items-start mb-3">
-                            <h2 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors truncate pr-2">
-                              {batch.name?.trim()}
-                            </h2>
-                            <span className="px-2.5 py-1 text-[10px] font-semibold rounded-md bg-primary/10 text-primary shrink-0 uppercase tracking-wider">
-                              {batch.weekday}
-                            </span>
-                          </div>
-
-                          <div className="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-medium bg-muted text-muted-foreground border border-border mb-4">
-                            {getTradeLabel(batchTradeMap[batch._id])}
-                          </div>
-
-                          <div className="space-y-2.5 text-sm text-muted-foreground border-t border-border/50 pt-4">
-                            <div className="flex items-center gap-2">
-                              <Clock className="w-4 h-4 shrink-0 opacity-70" />
-                              <span className="font-medium text-foreground">
-                                {formatTime12Hour(batch.startTime)} - {formatTime12Hour(batch.endTime)}
+                        <Link
+                          to={`/batches/${generateSlug(batch.name)}`}
+                          state={{
+                            batchId: batch._id,
+                            batchName: batch.name?.trim(),
+                          }}
+                          className="block h-full"
+                        >
+                          <div className="h-full p-6 bg-card rounded-xl border border-border shadow-sm hover:border-primary/30 hover:shadow-md transition-all duration-200 group">
+                            <div className="flex justify-between items-start mb-3">
+                              <h2 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors truncate pr-2">
+                                {batch.name?.trim()}
+                              </h2>
+                              <span className="px-2.5 py-1 text-[12px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-md shrink-0 uppercase tracking-wider">
+                                {batch.weekday}
                               </span>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <User className="w-4 h-4 shrink-0 opacity-70" />
-                              <span className="truncate font-medium text-foreground">
-                                {Array.isArray(batch.teachers) && batch.teachers.length > 0
-                                  ? batch.teachers
-                                      .map((t) => t.name || t.email || "Unknown")
-                                      .join(", ")
-                                  : batch.teacherEmail || "TBA"}
-                              </span>
+
+                            <div className="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-medium bg-muted text-muted-foreground border border-border mb-4">
+                              {getTradeLabel(batchTradeMap[batch._id])}
+                            </div>
+
+                            <div className="space-y-2.5 text-sm text-muted-foreground border-t border-border/50 pt-4">
+                              <div className="flex items-center gap-2">
+                                <Clock className="w-4 h-4 shrink-0 opacity-70" />
+                                <span className="font-medium text-foreground">
+                                  {formatTime12Hour(batch.startTime)} - {formatTime12Hour(batch.endTime)}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2.5">
+                                {resolvedTeachers.length > 0 ? (
+                                  <div className="flex items-center -space-x-1.5 shrink-0">
+                                    {resolvedTeachers.slice(0, 3).map((teacher, idx) => (
+                                      <UserAvatar
+                                        key={teacher._id || teacher.email || idx}
+                                        user={teacher}
+                                        name={teacher.name}
+                                        email={teacher.email}
+                                        className="w-6 h-6 text-[10px] ring-2 ring-card"
+                                      />
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <User className="w-4 h-4 shrink-0 opacity-70" />
+                                )}
+                                <span className="truncate font-medium text-foreground">
+                                  {Array.isArray(batch.teachers) && batch.teachers.length > 0
+                                    ? batch.teachers
+                                        .map((t) => t.name || t.email || "Unknown")
+                                        .join(", ")
+                                    : batch.teacherEmail || "TBA"}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </Link>
-                    </motion.div>
-                  ))}
+                        </Link>
+                      </motion.div>
+                    );
+                  })}
                 </AnimatePresence>
               </div>
             </div>

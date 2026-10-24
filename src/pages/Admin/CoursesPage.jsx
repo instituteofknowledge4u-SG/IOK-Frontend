@@ -405,16 +405,7 @@ const CoursesPage = () => {
                 >
                   <RefreshCw className={`w-4 h-4 ${isLoading ? "animate-spin text-primary" : "text-muted-foreground"}`} />
                 </button>
-
-                <Link
-                  to="/courses/addnewstudent"
-                  className="flex-1 sm:flex-none whitespace-nowrap px-3 py-2.5 bg-background border border-border hover:border-primary/50 text-foreground font-medium rounded-lg text-sm transition-all shadow-sm flex items-center justify-center gap-1.5"
-                >
-                  <Plus size={16} className="text-primary" />
-                  <span className="hidden sm:inline">Add Student</span>
-                  <span className="sm:hidden">Student</span>
-                </Link>
-
+                
                 <Link
                   to="/courses/createcourse"
                   className="flex-1 sm:flex-none whitespace-nowrap px-4 py-2.5 bg-primary hover:opacity-90 text-primary-foreground font-medium rounded-lg text-sm transition-all shadow-sm active:scale-95 flex items-center justify-center gap-1.5"

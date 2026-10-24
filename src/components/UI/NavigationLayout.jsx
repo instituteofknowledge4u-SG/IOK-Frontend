@@ -33,7 +33,12 @@ import { generateSlug } from "../../util/generateSlug";
 import { Helmet } from "react-helmet-async";
 
 // 1. EXTRACTED NavItem OUTSIDE THE MAIN COMPONENT
-const NavItem = ({ item, isMobile = false, isCollapsed = false, closeMobileMenu }) => {
+const NavItem = ({
+  item,
+  isMobile = false,
+  isCollapsed = false,
+  closeMobileMenu,
+}) => {
   const location = useLocation();
   const isActive =
     item.path === "/"
@@ -63,12 +68,16 @@ const NavItem = ({ item, isMobile = false, isCollapsed = false, closeMobileMenu 
         size={18}
         strokeWidth={isActive ? 2.5 : 2}
         className={`shrink-0 transition-colors ${
-          isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
+          isActive
+            ? "text-primary"
+            : "text-muted-foreground group-hover:text-foreground"
         }`}
       />
       <span
         className={`truncate transition-all duration-300 ${
-          !isMobile && isCollapsed ? "w-0 opacity-0 hidden" : "w-auto opacity-100 block"
+          !isMobile && isCollapsed
+            ? "w-0 opacity-0 hidden"
+            : "w-auto opacity-100 block"
         }`}
       >
         {item.label}
@@ -96,7 +105,8 @@ export const NavigationLayout = () => {
     root.classList.remove("light", "dark");
 
     if (theme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches
+      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
+        .matches
         ? "dark"
         : "light";
       root.classList.add(systemTheme);
@@ -131,7 +141,11 @@ export const NavigationLayout = () => {
       { path: "/fees", icon: HandCoins, label: "Fees Payment" },
       { path: "/fees-yearly-status", icon: BarChart3, label: "Fees Status" },
       { path: "/attendance", icon: Calendar, label: "Attendance" },
-      { path: "/attendance-status", icon: BarChart3, label: "Attendance Status" },
+      {
+        path: "/attendance-status",
+        icon: BarChart3,
+        label: "Attendance Status",
+      },
       {
         path: `/profile/${generateSlug(user?.name || "user")}`,
         icon: User,
@@ -144,7 +158,11 @@ export const NavigationLayout = () => {
       { path: "/students", icon: GraduationCap, label: "Students" },
       { path: "/batches", icon: Layers, label: "Assigned Batches" },
       { path: "/attendance", icon: Calendar, label: "Attendance" },
-      { path: "/attendance-status", icon: BarChart3, label: "Attendance Status" },
+      {
+        path: "/attendance-status",
+        icon: BarChart3,
+        label: "Attendance Status",
+      },
       { path: "/fees-yearly-status", icon: BarChart3, label: "Fees Status" },
       {
         path: `/profile/${generateSlug(user?.name || "user")}`,
@@ -156,7 +174,11 @@ export const NavigationLayout = () => {
     student: [
       { path: "/", icon: Home, label: "Dashboard" },
       { path: "/batches", icon: Layers, label: "My Batches" },
-      { path: "/attendance-status", icon: BarChart3, label: "My Attendance Status" },
+      {
+        path: "/attendance-status",
+        icon: BarChart3,
+        label: "My Attendance Status",
+      },
       { path: "/fees-yearly-status", icon: HandCoins, label: "My Fees Status" },
       {
         path: `/profile/${generateSlug(user?.name || "user")}`,
@@ -181,7 +203,6 @@ export const NavigationLayout = () => {
 
   return (
     <div className="fixed inset-0 flex bg-background text-foreground overflow-hidden selection:bg-primary/20">
-      
       {/* ---------------- SETTINGS MODAL ---------------- */}
       <AnimatePresence>
         {isSettingsOpen && (
@@ -193,11 +214,11 @@ export const NavigationLayout = () => {
               className="absolute inset-0 bg-background/80 backdrop-blur-sm"
               onClick={() => setIsSettingsOpen(false)}
             />
-            
+
             <Helmet>
               <title>IOK - Settings</title>
             </Helmet>
-            
+
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -206,7 +227,9 @@ export const NavigationLayout = () => {
             >
               <div className="w-full md:w-64 bg-muted/20 border-b md:border-b-0 md:border-r border-border p-4 md:p-6 shrink-0">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-semibold tracking-tight">Settings</h2>
+                  <h2 className="text-lg font-semibold tracking-tight">
+                    Settings
+                  </h2>
                   <button
                     onClick={() => setIsSettingsOpen(false)}
                     className="md:hidden p-1.5 rounded-md hover:bg-muted text-muted-foreground transition-colors"
@@ -254,11 +277,13 @@ export const NavigationLayout = () => {
                 {activeSettingsTab === "general" && (
                   <div className="space-y-6">
                     <div>
-                      <h4 className="text-sm font-medium text-foreground mb-1.5">Theme Preferences</h4>
+                      <h4 className="text-sm font-medium text-foreground mb-1.5">
+                        Theme Preferences
+                      </h4>
                       <p className="text-sm text-muted-foreground mb-4">
                         Choose how the application looks on your device.
                       </p>
-                      
+
                       <div className="grid grid-cols-3 gap-3">
                         {[
                           { id: "system", icon: Monitor, label: "System" },
@@ -275,14 +300,16 @@ export const NavigationLayout = () => {
                             }`}
                           >
                             <t.icon size={20} className="mb-2" />
-                            <span className="text-xs font-medium">{t.label}</span>
+                            <span className="text-xs font-medium">
+                              {t.label}
+                            </span>
                           </button>
                         ))}
                       </div>
                     </div>
                   </div>
                 )}
-                
+
                 {activeSettingsTab === "account" && (
                   <div className="flex flex-col items-center justify-center h-40 text-muted-foreground">
                     <p className="text-sm">Account settings coming soon.</p>
@@ -315,7 +342,11 @@ export const NavigationLayout = () => {
             >
               <div className="flex items-center justify-between p-5 border-b border-border shrink-0">
                 <div className="flex items-center gap-3">
-                  <img src={Image.Logo} alt="Logo" className="w-8 h-8 object-contain" />
+                  <img
+                    src={Image.Logo}
+                    alt="Logo"
+                    className="w-8 h-8 object-contain"
+                  />
                   <h1 className="font-semibold text-sm leading-tight tracking-tight">
                     Institute of <br /> Knowledge
                   </h1>
@@ -336,15 +367,15 @@ export const NavigationLayout = () => {
                 </div>
                 {/* 2. UPDATED MOBILE MENU MAP */}
                 {menuItems.map((item) => (
-                  <NavItem 
-                    key={item.label} 
-                    item={item} 
-                    isMobile={true} 
+                  <NavItem
+                    key={item.label}
+                    item={item}
+                    isMobile={true}
                     closeMobileMenu={() => setIsMobileMenuOpen(false)}
                   />
                 ))}
               </div>
-              
+
               <div className="p-4 border-t border-border space-y-1 shrink-0">
                 <button
                   onClick={() => {
@@ -375,7 +406,11 @@ export const NavigationLayout = () => {
       >
         <div className="flex items-center h-16 px-5 border-b border-border shrink-0">
           <div className="flex items-center gap-3 overflow-hidden">
-            <img src={Image.Logo} alt="Logo" className="w-8 h-8 object-contain shrink-0" />
+            <img
+              src={Image.Logo}
+              alt="Logo"
+              className="w-8 h-8 object-contain shrink-0"
+            />
             <h1
               className={`font-semibold text-sm leading-tight tracking-tight whitespace-nowrap transition-opacity duration-300 ${
                 isCollapsed ? "opacity-0 hidden" : "opacity-100"
@@ -389,11 +424,7 @@ export const NavigationLayout = () => {
         <div className="flex-1 overflow-y-auto py-5 px-3 space-y-1 no-scrollbar">
           {/* 3. UPDATED DESKTOP MENU MAP */}
           {menuItems.map((item) => (
-            <NavItem 
-              key={item.label} 
-              item={item} 
-              isCollapsed={isCollapsed} 
-            />
+            <NavItem key={item.label} item={item} isCollapsed={isCollapsed} />
           ))}
         </div>
 
@@ -403,14 +434,17 @@ export const NavigationLayout = () => {
             className="w-full flex items-center justify-center p-2 rounded-md hover:bg-muted/60 text-muted-foreground transition-colors"
             title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
-            {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+            {isCollapsed ? (
+              <ChevronRight size={18} />
+            ) : (
+              <ChevronLeft size={18} />
+            )}
           </button>
         </div>
       </aside>
 
       {/* ---------------- MAIN CONTENT AREA ---------------- */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden bg-background md:bg-muted/10">
-        
         {/* Top Header */}
         <header className="h-16 flex items-center justify-between px-4 md:px-6 border-b border-border bg-card/50 backdrop-blur-md shrink-0 z-20">
           <div className="flex items-center gap-3 min-w-0">
@@ -424,7 +458,7 @@ export const NavigationLayout = () => {
               <Breadcrumbs />
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             <div className="hidden md:flex items-center gap-3 pr-4 border-r border-border">
               <div className="flex flex-col items-end">
@@ -435,8 +469,18 @@ export const NavigationLayout = () => {
                   {currentRole}
                 </span>
               </div>
-              <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-sm uppercase">
-                 {user?.name ? user.name.charAt(0) : "U"}
+              <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-sm uppercase overflow-hidden">
+                {user?.profilePic ? (
+                  <img
+                    src={user?.profilePic}
+                    alt={user?.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : user?.name ? (
+                  user?.name.charAt(0)
+                ) : (
+                  "U"
+                )}
               </div>
             </div>
             <button
@@ -458,7 +502,7 @@ export const NavigationLayout = () => {
 
         {/* Mobile Breadcrumbs */}
         <div className="sm:hidden px-4 py-2.5 bg-card border-b border-border shrink-0">
-           <Breadcrumbs />
+          <Breadcrumbs />
         </div>
 
         <main className="flex-1 overflow-y-auto w-full relative scroll-smooth">
@@ -466,7 +510,6 @@ export const NavigationLayout = () => {
             <Outlet />
           </div>
         </main>
-        
       </div>
     </div>
   );

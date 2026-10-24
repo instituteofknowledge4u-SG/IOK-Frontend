@@ -1,245 +1,49 @@
-// import { create } from "zustand";
-// import toast from "react-hot-toast";
-// import { api } from "../api/api";
-// import useTradeStore from "./useTradeStore";
-
-// // Helper to process incoming batches (Hydrates Trade Store & Cleans Name)
-// const processBatchForTrade = (batch) => {
-//   if (!batch || !batch.name) return batch;
-//   const match = batch.name.match(/ \[Trade: (.*?)\]$/);
-//   if (match) {
-//     const tradeName = match[1];
-//     const trades = useTradeStore.getState().trades;
-//     const tradeObj = trades.find((t) => t.name === tradeName);
-//     if (tradeObj && batch._id) {
-//       useTradeStore.getState().assignTradeToBatch(batch._id, tradeObj.id);
-//     }
-//     return { ...batch, name: batch.name.replace(match[0], "") };
-//   }
-//   return batch;
-// };
-
-// // Helper to format outgoing batches (Appends Trade Name for cross-device persistence)
-// const formatBatchNameForTrade = (name, batchId, tradeIdOverride) => {
-//   let tradeId = tradeIdOverride;
-//   if (!tradeId && batchId) {
-//     tradeId = useTradeStore.getState().batchTradeMap[batchId];
-//   }
-//   if (tradeId) {
-//     const tradeLabel = useTradeStore.getState().getTradeLabel(tradeId);
-//     if (tradeLabel && name && !name.includes(`[Trade:`)) {
-//       return `${name} [Trade: ${tradeLabel}]`;
-//     }
-//   }
-//   return name;
-// };
-
-// const useBatchStore = create((set, get) => ({
-//   batches: [],
-//   currentBatch: null,
-//   batchStudents: [],
-//   isLoading: false,
-//   error: null,
-
-//   // 1. Fetch all batches (Backend should ideally filter this if a Student requests it)
-//   fetchBatches: async () => {
-//     set({ isLoading: true, error: null });
-//     try {
-//       const response = await api.get("/batch");
-//       const processedBatches = response.data.map(processBatchForTrade);
-//       set({ batches: processedBatches, isLoading: false });
-//     } catch (error) {
-//       const message =
-//         error.response?.data?.message || "Failed to fetch batches";
-//       set({ error: message, isLoading: false });
-//       toast.error(message);
-//     }
-//   },
-
-//   // 2. Fetch single batch details
-//   fetchBatchById: async (id) => {
-//     set({ isLoading: true, error: null });
-//     try {
-//       const response = await api.get(`/batch/show/${id}`);
-//       const processedBatch = processBatchForTrade(response.data);
-//       set({ currentBatch: processedBatch, isLoading: false });
-//     } catch (error) {
-//       const message =
-//         error.response?.data?.message || "Failed to fetch batch details";
-//       set({ error: message, isLoading: false });
-//       toast.error(message);
-//     }
-//   },
-
-//   // 3. Fetch students in a batch
-//   fetchBatchStudents: async (id) => {
-//     set({ isLoading: true, error: null });
-//     try {
-//       const response = await api.get(`/batch/students/${id}`);
-//       set({ batchStudents: response.data, isLoading: false });
-//     } catch (error) {
-//       const message =
-//         error.response?.data?.message || "Failed to fetch batch students";
-//       set({ error: message, isLoading: false });
-//       toast.error(message);
-//     }
-//   },
-
-//   // 4. Create a batch (Admin)
-//   createBatch: async (batchData, navigate, tradeId) => {
-//     set({ isLoading: true, error: null });
-//     try {
-//       if (batchData.name) {
-//         batchData.name = formatBatchNameForTrade(batchData.name, null, tradeId);
-//       }
-
-//       const response = await api.post("/batch/create", batchData);
-//       const processedBatch = processBatchForTrade(response.data);
-
-//       // Enrich the batch with teacher information from the request
-//       if (batchData.teachers && batchData.teachers.length > 0) {
-//         processedBatch.teachers = batchData.teachers.map((teacherId, idx) => ({
-//           _id: teacherId,
-//           name: batchData.teacherName || "Teacher",
-//           email: batchData.teacherEmail || `teacher-${idx}@institute.local`,
-//         }));
-//       }
-
-//       set((state) => ({
-//         batches: [...state.batches, processedBatch],
-//         isLoading: false,
-//       }));
-
-//       toast.success("Batch created successfully!");
-
-//       // Refresh the batch list after a short delay to ensure backend has processed it
-//       setTimeout(() => {
-//         get().fetchBatches();
-//       }, 500);
-
-//       if (navigate) navigate(-1);
-
-//       return processedBatch;
-//     } catch (error) {
-//       const message = error.response?.data?.error || "Failed to create batch";
-//       set({ error: message, isLoading: false });
-//       toast.error(message);
-//     }
-//   },
-
-//   // 5. Add student to batch (Admin/Teacher)
-//   addStudentToBatch: async (id, studentData) => {
-//     set({ isLoading: true, error: null });
-//     try {
-//       await api.post(`/batch/add-student/${id}`, studentData);
-//       toast.success("Student added successfully!");
-//       // Optionally refresh batch details
-//       get().fetchBatchById(id);
-//     } catch (error) {
-//       const message = error.response?.data?.message || "Failed to add student";
-//       set({ error: message, isLoading: false });
-//       toast.error(message);
-//     }
-//   },
-
-//   // 6. Update batch (Admin)
-//   updateBatch: async (id, updatedData, navigate) => {
-//     set({ isLoading: true, error: null });
-//     try {
-//       if (updatedData.name) {
-//         updatedData.name = formatBatchNameForTrade(updatedData.name, id);
-//       }
-
-//       const response = await api.put(`/batch/edit/${id}`, updatedData);
-//       toast.success("Batch updated successfully!");
-//       get().fetchBatchById(id); // Refresh current batch
-//       // if (navigate) navigate(`/batches`);
-//       if (navigate) navigate(-1);
-//     } catch (error) {
-//       const message = error.response?.data?.message || "Failed to update batch";
-//       set({ error: message, isLoading: false });
-//       toast.error(message);
-//     }
-//   },
-
-//   // 7. Delete batch (Admin)
-//   deleteBatch: async (id, navigate) => {
-//     set({ isLoading: true, error: null });
-//     try {
-//       await api.delete(`/batch/delete/${id}`);
-//       set((state) => ({
-//         batches: state.batches.filter((batch) => batch._id !== id),
-//         isLoading: false,
-//       }));
-//       toast.success("Batch deleted successfully!");
-//       if (navigate) navigate(-1);
-//     } catch (error) {
-//       const message = error.response?.data?.message || "Failed to delete batch";
-//       set({ error: message, isLoading: false });
-//       toast.error(message);
-//     }
-//   },
-
-//   // 8. Remove student from batch (Admin/Teacher)
-//   removeStudentFromBatch: async (id, studentId, mainClassId) => {
-//     set({ isLoading: true, error: null });
-//     try {
-//       await api.delete(`/batch/remove-student/${id}`, {
-//         data: {
-//           studentId: studentId,
-//           mainClassId: mainClassId,
-//         },
-//       });
-//       toast.success("Student removed successfully!");
-//       // Refresh batch details to show the updated student list
-//       get().fetchBatchById(id);
-//     } catch (error) {
-//       const message =
-//         error.response?.data?.message || "Failed to remove student";
-//       set({ error: message, isLoading: false });
-//       toast.error(message);
-//     }
-//   },
-// }));
-
-// export default useBatchStore;
-
 import { create } from "zustand";
 import toast from "react-hot-toast";
 import { api } from "../api/api";
-
-// --------------------------------------------------
-// Helpers
-// --------------------------------------------------
+import useTradeStore from "./useTradeStore";
 
 const processBatchForTrade = (batch) => {
-  if (!batch) return batch;
-
-  // Keep your existing trade-store hydration logic here
-  // if your project already has one.
+  if (!batch || !batch.name) return batch;
+  const match = batch.name.match(/ \[Trade: (.*?)\]$/);
+  if (match) {
+    const tradeName = match[1];
+    const tradeState = useTradeStore?.getState?.();
+    if (tradeState) {
+      const trades = tradeState.trades || [];
+      const tradeObj = trades.find((t) => t.name === tradeName || String(t.id) === String(tradeName));
+      const batchId = batch._id || batch.id;
+      if (tradeObj && batchId && tradeState.assignTradeToBatch) {
+        tradeState.assignTradeToBatch(batchId, tradeObj.id);
+      }
+    }
+    return { ...batch, name: batch.name.replace(match[0], "") };
+  }
   return batch;
 };
 
+// Helper to format outgoing batches (Appends Trade Name for cross-device persistence)
 const formatBatchNameForTrade = (name, batchId, tradeIdOverride) => {
   if (!name) return name;
+  let tradeId = tradeIdOverride;
+  const tradeState = useTradeStore?.getState?.();
 
-  const tradeId = tradeIdOverride;
-
-  if (!tradeId) return name;
-
-  // Avoid adding the suffix multiple times
-  if (name.includes("[Trade:")) {
-    return name;
+  if (!tradeId && batchId && tradeState?.batchTradeMap) {
+    tradeId = tradeState.batchTradeMap[batchId];
   }
 
-  return `${name} [Trade: ${tradeId}]`;
+  if (tradeId) {
+    const tradeLabel = tradeState?.getTradeLabel
+      ? tradeState.getTradeLabel(tradeId)
+      : tradeId;
+    if (tradeLabel && !name.includes("[Trade:")) {
+      return `${name} [Trade: ${tradeLabel}]`;
+    }
+  }
+  return name;
 };
 
-// --------------------------------------------------
-// Request cache
-// --------------------------------------------------
-
-const CACHE_TTL = 30 * 1000;
+const CACHE_TTL = 30 * 1000; // 30 seconds cache TTL
 
 const cache = {
   batches: {
@@ -257,16 +61,16 @@ const pendingRequests = {
 };
 
 const isCacheValid = (timestamp) => {
-  return Date.now() - timestamp < CACHE_TTL;
+  return Boolean(timestamp && Date.now() - timestamp < CACHE_TTL);
 };
 
 const clearBatchCache = (id) => {
   if (id) {
-    cache.batchDetails.delete(String(id));
-    cache.batchStudents.delete(String(id));
-
-    pendingRequests.batchDetails.delete(String(id));
-    pendingRequests.batchStudents.delete(String(id));
+    const key = String(id);
+    cache.batchDetails.delete(key);
+    cache.batchStudents.delete(key);
+    pendingRequests.batchDetails.delete(key);
+    pendingRequests.batchStudents.delete(key);
   }
 };
 
@@ -275,7 +79,6 @@ const clearAllBatchCache = () => {
     data: null,
     timestamp: 0,
   };
-
   cache.batchDetails.clear();
   cache.batchStudents.clear();
 
@@ -284,57 +87,47 @@ const clearAllBatchCache = () => {
   pendingRequests.batchStudents.clear();
 };
 
-// --------------------------------------------------
-// Store
-// --------------------------------------------------
-
 const useBatchStore = create((set, get) => ({
-  // -----------------------------------------------
-  // State
-  // -----------------------------------------------
-
   batches: [],
   currentBatch: null,
   batchStudents: [],
-
   isLoading: false,
   error: null,
 
-  // -----------------------------------------------
-  // Fetch all batches
-  // -----------------------------------------------
+  // Helper to sync in-place updates with cache
+  syncCurrentBatchCache: (id, updatedBatch) => {
+    if (!id || !updatedBatch) return;
+    const key = String(id);
+    cache.batchDetails.set(key, {
+      data: updatedBatch,
+      timestamp: Date.now(),
+    });
+    set({ currentBatch: updatedBatch });
+  },
 
+  // 1. Fetch all batches
   fetchBatches: async (force = false) => {
     const now = Date.now();
 
-    // Use cached data
     if (!force && cache.batches.data && isCacheValid(cache.batches.timestamp)) {
       set({
         batches: cache.batches.data,
         isLoading: false,
         error: null,
       });
-
       return cache.batches.data;
     }
 
-    // Reuse existing request
     if (pendingRequests.batches) {
       return pendingRequests.batches;
     }
 
-    set({
-      isLoading: true,
-      error: null,
-    });
+    set({ isLoading: true, error: null });
 
     pendingRequests.batches = (async () => {
       try {
         const response = await api.get("/batch");
-
-        const processedBatches = (response.data || []).map(
-          processBatchForTrade,
-        );
+        const processedBatches = (response.data || []).map(processBatchForTrade);
 
         cache.batches = {
           data: processedBatches,
@@ -351,14 +144,8 @@ const useBatchStore = create((set, get) => ({
       } catch (error) {
         const message =
           error?.response?.data?.message || "Failed to fetch batches";
-
-        set({
-          error: message,
-          isLoading: false,
-        });
-
+        set({ error: message, isLoading: false });
         toast.error(message);
-
         throw error;
       } finally {
         pendingRequests.batches = null;
@@ -368,10 +155,7 @@ const useBatchStore = create((set, get) => ({
     return pendingRequests.batches;
   },
 
-  // -----------------------------------------------
-  // Fetch single batch
-  // -----------------------------------------------
-
+  // 2. Fetch single batch details
   fetchBatchById: async (id, force = false) => {
     if (!id) return null;
 
@@ -384,26 +168,19 @@ const useBatchStore = create((set, get) => ({
         isLoading: false,
         error: null,
       });
-
       return cached.data;
     }
 
-    // Reuse existing request
     const existingRequest = pendingRequests.batchDetails.get(key);
-
     if (existingRequest) {
       return existingRequest;
     }
 
-    set({
-      isLoading: true,
-      error: null,
-    });
+    set({ isLoading: true, error: null });
 
     const request = (async () => {
       try {
         const response = await api.get(`/batch/show/${id}`);
-
         const processedBatch = processBatchForTrade(response.data);
 
         cache.batchDetails.set(key, {
@@ -421,14 +198,8 @@ const useBatchStore = create((set, get) => ({
       } catch (error) {
         const message =
           error?.response?.data?.message || "Failed to fetch batch details";
-
-        set({
-          error: message,
-          isLoading: false,
-        });
-
+        set({ error: message, isLoading: false });
         toast.error(message);
-
         throw error;
       } finally {
         pendingRequests.batchDetails.delete(key);
@@ -436,14 +207,10 @@ const useBatchStore = create((set, get) => ({
     })();
 
     pendingRequests.batchDetails.set(key, request);
-
     return request;
   },
 
-  // -----------------------------------------------
-  // Fetch students of a batch
-  // -----------------------------------------------
-
+  // 3. Fetch students of a batch
   fetchBatchStudents: async (id, force = false) => {
     if (!id) return [];
 
@@ -456,26 +223,19 @@ const useBatchStore = create((set, get) => ({
         isLoading: false,
         error: null,
       });
-
       return cached.data;
     }
 
-    // Reuse existing request
     const existingRequest = pendingRequests.batchStudents.get(key);
-
     if (existingRequest) {
       return existingRequest;
     }
 
-    set({
-      isLoading: true,
-      error: null,
-    });
+    set({ isLoading: true, error: null });
 
     const request = (async () => {
       try {
         const response = await api.get(`/batch/students/${id}`);
-
         const students = response.data || [];
 
         cache.batchStudents.set(key, {
@@ -493,14 +253,8 @@ const useBatchStore = create((set, get) => ({
       } catch (error) {
         const message =
           error?.response?.data?.message || "Failed to fetch batch students";
-
-        set({
-          error: message,
-          isLoading: false,
-        });
-
+        set({ error: message, isLoading: false });
         toast.error(message);
-
         throw error;
       } finally {
         pendingRequests.batchStudents.delete(key);
@@ -508,199 +262,172 @@ const useBatchStore = create((set, get) => ({
     })();
 
     pendingRequests.batchStudents.set(key, request);
-
     return request;
   },
 
-  // -----------------------------------------------
-  // Create batch
-  // -----------------------------------------------
-
-  createBatch: async (data) => {
-    set({
-      isLoading: true,
-      error: null,
-    });
+  // 4. Create a batch (Admin)
+  createBatch: async (batchData, navigate, tradeId) => {
+    set({ isLoading: true, error: null });
 
     try {
-      const response = await api.post("/batch", data);
+      const payload = { ...batchData };
+      if (payload.name) {
+        payload.name = formatBatchNameForTrade(payload.name, null, tradeId);
+      }
+
+      const response = await api.post("/batch/create", payload);
+      const processedBatch = processBatchForTrade(response.data);
+
+      if (payload.teachers && payload.teachers.length > 0 && processedBatch) {
+        processedBatch.teachers = payload.teachers.map((teacherId, idx) => ({
+          _id: teacherId,
+          name: payload.teacherName || "Teacher",
+          email: payload.teacherEmail || `teacher-${idx}@institute.local`,
+        }));
+      }
+
+      clearAllBatchCache();
+
+      set((state) => ({
+        batches: processedBatch
+          ? [...state.batches, processedBatch]
+          : state.batches,
+        isLoading: false,
+        error: null,
+      }));
 
       toast.success("Batch created successfully!");
 
-      // Invalidate cache
-      clearAllBatchCache();
+      setTimeout(() => {
+        get().fetchBatches(true).catch(() => {});
+      }, 500);
 
-      // Refresh list once
-      await get().fetchBatches(true);
+      if (typeof navigate === "function") navigate(-1);
 
-      return response.data;
+      return processedBatch;
     } catch (error) {
       const message =
-        error?.response?.data?.message || "Failed to create batch";
-
-      set({
-        error: message,
-        isLoading: false,
-      });
-
+        error?.response?.data?.error ||
+        error?.response?.data?.message ||
+        "Failed to create batch";
+      set({ error: message, isLoading: false });
       toast.error(message);
-
       throw error;
     }
   },
 
-  // -----------------------------------------------
-  // Add student to batch
-  // -----------------------------------------------
+  // 5. Add student to batch (Supports both object payload & positional args)
+  addStudentToBatch: async (id, studentDataOrId, mainClassId) => {
+    if (!id || !studentDataOrId) return null;
 
-  addStudentToBatch: async (id, studentId, mainClassId) => {
-    if (!id || !studentId) return null;
+    set({ error: null });
 
-    set({
-      isLoading: true,
-      error: null,
-    });
+    const payload =
+      typeof studentDataOrId === "object" && studentDataOrId !== null
+        ? studentDataOrId
+        : { studentId: studentDataOrId, mainClassId };
 
     try {
-      const response = await api.post(`/batch/add-student/${id}`, {
-        studentId,
-        mainClassId,
-      });
-
+      const response = await api.post(`/batch/add-student/${id}`, payload);
       toast.success("Student added successfully!");
 
-      // Invalidate affected batch caches
+      // Invalidate cached batch list & student list so next visit has fresh data
+      cache.batches.timestamp = 0;
       clearBatchCache(id);
-
-      set({
-        isLoading: false,
-      });
 
       return response.data;
     } catch (error) {
       const message =
         error?.response?.data?.message || "Failed to add student to batch";
-
-      set({
-        error: message,
-        isLoading: false,
-      });
-
+      set({ error: message });
       toast.error(message);
-
       throw error;
     }
   },
 
-  // -----------------------------------------------
-  // Update batch
-  // -----------------------------------------------
-
-  updateBatch: async (id, data) => {
+  // 6. Update batch (Admin)
+  updateBatch: async (id, updatedData, navigate) => {
     if (!id) return null;
 
-    set({
-      isLoading: true,
-      error: null,
-    });
+    set({ isLoading: true, error: null });
 
     try {
-      const response = await api.put(`/batch/${id}`, data);
+      const payload = { ...updatedData };
+      if (payload.name) {
+        payload.name = formatBatchNameForTrade(payload.name, id);
+      }
 
+      const response = await api.put(`/batch/edit/${id}`, payload);
       toast.success("Batch updated successfully!");
 
-      // Invalidate cache
       clearAllBatchCache();
+      await get().fetchBatchById(id, true);
 
-      set({
-        isLoading: false,
-      });
+      if (typeof navigate === "function") navigate(-1);
 
       return response.data;
     } catch (error) {
       const message =
         error?.response?.data?.message || "Failed to update batch";
-
-      set({
-        error: message,
-        isLoading: false,
-      });
-
+      set({ error: message, isLoading: false });
       toast.error(message);
-
       throw error;
     }
   },
 
-  // -----------------------------------------------
-  // Delete batch
-  // -----------------------------------------------
-
-  deleteBatch: async (id) => {
+  // 7. Delete batch (Admin)
+  deleteBatch: async (id, navigate) => {
     if (!id) return false;
 
-    set({
-      isLoading: true,
-      error: null,
-    });
+    set({ isLoading: true, error: null });
 
     try {
-      await api.delete(`/batch/${id}`);
-
+      await api.delete(`/batch/delete/${id}`);
       toast.success("Batch deleted successfully!");
 
       clearBatchCache(id);
 
-      // Remove from local state immediately
-      set((state) => ({
-        batches: state.batches.filter(
-          (batch) => String(batch.id) !== String(id),
-        ),
+      set((state) => {
+        const updatedBatches = state.batches.filter(
+          (batch) => String(batch._id || batch.id) !== String(id)
+        );
+        const isCurrentDeleted =
+          state.currentBatch &&
+          String(state.currentBatch._id || state.currentBatch.id) === String(id);
 
-        currentBatch:
-          state.currentBatch && String(state.currentBatch.id) === String(id)
-            ? null
-            : state.currentBatch,
+        cache.batches = {
+          data: updatedBatches,
+          timestamp: Date.now(),
+        };
 
-        isLoading: false,
-      }));
+        return {
+          batches: updatedBatches,
+          currentBatch: isCurrentDeleted ? null : state.currentBatch,
+          isLoading: false,
+          error: null,
+        };
+      });
 
-      // Invalidate complete batch cache
-      cache.batches = {
-        data: get().batches,
-        timestamp: Date.now(),
-      };
+      if (typeof navigate === "function") navigate(-1);
 
       return true;
     } catch (error) {
       const message =
         error?.response?.data?.message || "Failed to delete batch";
-
-      set({
-        error: message,
-        isLoading: false,
-      });
-
+      set({ error: message, isLoading: false });
       toast.error(message);
-
       throw error;
     }
   },
 
-  // -----------------------------------------------
-  // REMOVE STUDENT FROM BATCH
-  // -----------------------------------------------
-
+  // 8. Remove student from batch (Admin/Teacher)
   removeStudentFromBatch: async (id, studentId, mainClassId) => {
     if (!id || !studentId) {
       toast.error("Batch ID and student ID are required");
       return false;
     }
 
-    set({
-      isLoading: true,
-      error: null,
-    });
+    set({ error: null });
 
     try {
       await api.delete(`/batch/remove-student/${id}`, {
@@ -710,73 +437,43 @@ const useBatchStore = create((set, get) => ({
         },
       });
 
-      // -------------------------------------------
-      // Optimistic update
-      // -------------------------------------------
+      const matchStudentId = (student) => {
+        const currentStudentId =
+          student?._id ?? student?.id ?? student?.studentId ?? student?.userId;
+        return String(currentStudentId) !== String(studentId);
+      };
 
       set((state) => ({
-        batchStudents: state.batchStudents.filter((student) => {
-          const currentStudentId =
-            student?.id ?? student?.studentId ?? student?.userId;
-
-          return String(currentStudentId) !== String(studentId);
-        }),
+        batchStudents: state.batchStudents.filter(matchStudentId),
       }));
-
-      // -------------------------------------------
-      // Update cached students
-      // -------------------------------------------
 
       const key = String(id);
       const cachedStudents = cache.batchStudents.get(key);
 
       if (cachedStudents) {
-        const updatedStudents = cachedStudents.data.filter((student) => {
-          const currentStudentId =
-            student?.id ?? student?.studentId ?? student?.userId;
-
-          return String(currentStudentId) !== String(studentId);
-        });
-
+        const updatedStudents = cachedStudents.data.filter(matchStudentId);
         cache.batchStudents.set(key, {
           data: updatedStudents,
           timestamp: Date.now(),
         });
-
-        set({
-          batchStudents: updatedStudents,
-        });
       }
 
-      // Batch details may have changed too
+      // Clear batch caches so subsequent fetches stay consistent
       cache.batchDetails.delete(key);
+      cache.batches.timestamp = 0;
 
       toast.success("Student removed successfully!");
-
-      set({
-        isLoading: false,
-      });
-
       return true;
     } catch (error) {
       const message =
         error?.response?.data?.message || "Failed to remove student";
-
-      set({
-        error: message,
-        isLoading: false,
-      });
-
+      set({ error: message });
       toast.error(message);
-
       return false;
     }
   },
 
-  // -----------------------------------------------
   // Clear current batch
-  // -----------------------------------------------
-
   clearCurrentBatch: () => {
     set({
       currentBatch: null,
@@ -785,23 +482,14 @@ const useBatchStore = create((set, get) => ({
     });
   },
 
-  // -----------------------------------------------
   // Clear errors
-  // -----------------------------------------------
-
   clearError: () => {
-    set({
-      error: null,
-    });
+    set({ error: null });
   },
 
-  // -----------------------------------------------
   // Clear cache manually
-  // -----------------------------------------------
-
   clearCache: () => {
     clearAllBatchCache();
-
     set({
       batches: [],
       currentBatch: null,
@@ -811,3 +499,6 @@ const useBatchStore = create((set, get) => ({
 }));
 
 export default useBatchStore;
+
+
+

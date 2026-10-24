@@ -41,7 +41,9 @@ const CreateBatch = () => {
   const [teacherId, setTeacherId] = useState("");
 
   // Relational Data State
-  const assignTradeToBatch = useTradeStore((state) => state.assignTradeToBatch);
+  const assignTradeToBatch = useTradeStore(
+    (state) => state.assignTradeToBatch
+  );
 
   // Classes State: [{ id, mainClass }]
   const [selectedClasses, setSelectedClasses] = useState([
@@ -62,12 +64,18 @@ const CreateBatch = () => {
   // Handle clicking outside to close active dropdowns
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (activeDropdown && !event.target.closest(".dropdown-container")) {
+      if (
+        activeDropdown &&
+        !event.target.closest(".dropdown-container")
+      ) {
         setActiveDropdown(null);
       }
     };
+
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+
+    return () =>
+      document.removeEventListener("mousedown", handleClickOutside);
   }, [activeDropdown]);
 
   // Class Management Functions
@@ -80,14 +88,19 @@ const CreateBatch = () => {
 
   const removeClass = (id) => {
     if (selectedClasses.length > 1) {
-      setSelectedClasses(selectedClasses.filter((c) => c.id !== id));
+      setSelectedClasses(
+        selectedClasses.filter((c) => c.id !== id)
+      );
     }
   };
 
   const updateClass = (id, cls) => {
     setSelectedClasses(
-      selectedClasses.map((c) => (c.id === id ? { ...c, mainClass: cls } : c)),
+      selectedClasses.map((c) =>
+        c.id === id ? { ...c, mainClass: cls } : c
+      )
     );
+
     setActiveDropdown(null);
     setSearchQueries({ class: "" });
   };
@@ -95,7 +108,9 @@ const CreateBatch = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const validClasses = selectedClasses.filter((c) => c.mainClass);
+    const validClasses = selectedClasses.filter(
+      (c) => c.mainClass
+    );
 
     if (validClasses.length === 0) {
       toast.error("Please add at least one course.");
@@ -103,7 +118,9 @@ const CreateBatch = () => {
     }
 
     // Extract unique classes
-    const mainClassesSet = new Set(validClasses.map((c) => c.mainClass._id));
+    const mainClassesSet = new Set(
+      validClasses.map((c) => c.mainClass._id)
+    );
 
     const payload = {
       name,
@@ -121,10 +138,14 @@ const CreateBatch = () => {
       const createdBatch = await createBatch(
         payload,
         navigate,
-        selectedTradeId,
+        selectedTradeId
       );
+
       if (createdBatch?._id && selectedTradeId) {
-        assignTradeToBatch(createdBatch._id, selectedTradeId);
+        assignTradeToBatch(
+          createdBatch._id,
+          selectedTradeId
+        );
       }
     } catch (err) {
       console.error("Failed to create batch:", err);
@@ -147,7 +168,11 @@ const CreateBatch = () => {
       className={`w-8 h-8 rounded-full ${bgColor} ${textColor} flex items-center justify-center font-bold shrink-0 overflow-hidden shadow-inner`}
     >
       {src ? (
-        <img src={src} alt={name} className="w-full h-full object-cover" />
+        <img
+          src={src}
+          alt={name}
+          className="w-full h-full object-cover"
+        />
       ) : name ? (
         <span className="text-xs">{getInitials(name)}</span>
       ) : (
@@ -157,15 +182,31 @@ const CreateBatch = () => {
   );
 
   const handleSearchChange = (field, value, activeKey) => {
-    setSearchQueries((prev) => ({ ...prev, [field]: value }));
+    setSearchQueries((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+
     setActiveDropdown(activeKey);
   };
 
-  const getAvailableClasses = () => {
-    return mainClasses;
-  };
+  // FIX: Exclude courses selected in other rows.
+  // Keep the current row's selected course available to that row.
+  const getAvailableClasses = (currentClassId) => {
+    const selectedClassIds = selectedClasses
+      .filter(
+        (selectedClass) =>
+          selectedClass.id !== currentClassId &&
+          selectedClass.mainClass
+      )
+      .map(
+        (selectedClass) => selectedClass.mainClass._id
+      );
 
-  const availableClasses = getAvailableClasses();
+    return mainClasses.filter(
+      (cls) => !selectedClassIds.includes(cls._id)
+    );
+  };
 
   return (
     <motion.div
@@ -176,12 +217,17 @@ const CreateBatch = () => {
       <Helmet>
         <title>{`IOK - Create Batch`}</title>
       </Helmet>
+
       <div className="p-5 sm:p-8 rounded-3xl bg-card border border-border shadow-2xl transition-colors duration-300">
         <BackButton
           details={`Set up core details, schedule, and assign courses to provision a
             new learning batch.`}
         />
-        <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8 mt-6">
+
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-6 sm:space-y-8 mt-6"
+        >
           {/* SECTION 1: Core Details */}
           <div className="bg-muted/30 p-5 sm:p-6 rounded-2xl border border-border/50 space-y-6">
             <h2 className="text-lg font-bold text-foreground flex items-center gap-2 mb-4">
@@ -195,6 +241,7 @@ const CreateBatch = () => {
                 <label className="block text-sm font-semibold text-foreground mb-2">
                   Batch Name
                 </label>
+
                 <input
                   type="text"
                   required
@@ -210,19 +257,27 @@ const CreateBatch = () => {
                 <label className="block text-sm font-semibold text-foreground mb-2">
                   Trade
                 </label>
+
                 <div className="relative">
                   <select
                     value={selectedTradeId}
-                    onChange={(event) => setSelectedTradeId(event.target.value)}
+                    onChange={(event) =>
+                      setSelectedTradeId(event.target.value)
+                    }
                     className="w-full px-4 py-3 appearance-none rounded-xl border border-border bg-background text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all shadow-sm"
                   >
                     <option value="">Unassigned</option>
+
                     {TRADES.map((trade) => (
-                      <option key={trade.id} value={trade.id}>
+                      <option
+                        key={trade.id}
+                        value={trade.id}
+                      >
                         {trade.name}
                       </option>
                     ))}
                   </select>
+
                   <ChevronDown
                     className="absolute right-4 top-3.5 text-muted-foreground pointer-events-none"
                     size={18}
@@ -235,19 +290,27 @@ const CreateBatch = () => {
                 <label className="block text-sm font-semibold text-foreground mb-2">
                   Assign Teacher
                 </label>
+
                 <div className="relative">
                   <select
                     value={teacherId}
-                    onChange={(event) => setTeacherId(event.target.value)}
+                    onChange={(event) =>
+                      setTeacherId(event.target.value)
+                    }
                     className="w-full px-4 py-3 appearance-none rounded-xl border border-border bg-background text-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all shadow-sm"
                   >
                     <option value="">Unassigned</option>
+
                     {teachers?.map((teacher) => (
-                      <option key={teacher._id} value={teacher._id}>
+                      <option
+                        key={teacher._id}
+                        value={teacher._id}
+                      >
                         {teacher.name} ({teacher.email})
                       </option>
                     ))}
                   </select>
+
                   <ChevronDown
                     className="absolute right-4 top-3.5 text-muted-foreground pointer-events-none"
                     size={18}
@@ -263,11 +326,13 @@ const CreateBatch = () => {
               <Calendar size={20} className="text-primary" />
               Schedule Timing
             </h2>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-2">
                   Weekday
                 </label>
+
                 <div className="relative">
                   <select
                     value={weekday}
@@ -288,6 +353,7 @@ const CreateBatch = () => {
                       </option>
                     ))}
                   </select>
+
                   <ChevronDown
                     className="absolute right-4 top-3.5 text-muted-foreground pointer-events-none"
                     size={18}
@@ -297,9 +363,13 @@ const CreateBatch = () => {
 
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-                  <Clock size={14} className="text-muted-foreground" /> Start
-                  Time
+                  <Clock
+                    size={14}
+                    className="text-muted-foreground"
+                  />
+                  Start Time
                 </label>
+
                 <input
                   type="time"
                   required
@@ -311,8 +381,13 @@ const CreateBatch = () => {
 
               <div>
                 <label className="block text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-                  <Clock size={14} className="text-muted-foreground" /> End Time
+                  <Clock
+                    size={14}
+                    className="text-muted-foreground"
+                  />
+                  End Time
                 </label>
+
                 <input
                   type="time"
                   required
@@ -335,137 +410,177 @@ const CreateBatch = () => {
 
             <div className="space-y-4">
               <AnimatePresence>
-                {selectedClasses.map((selectedClass, index) => (
-                  <motion.div
-                    key={selectedClass.id}
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: "auto" }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="flex flex-col sm:flex-row gap-4 items-start"
-                  >
-                    {/* Course Selection */}
-                    <div className="relative dropdown-container flex-1 w-full">
-                      <div
-                        className="relative flex items-center w-full min-h-[50px] px-4 py-2 rounded-xl border border-border bg-background focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all shadow-sm cursor-text"
-                        onClick={() =>
-                          setActiveDropdown(`class-${selectedClass.id}`)
-                        }
-                      >
-                        {selectedClass.mainClass ? (
-                          <div className="flex items-center gap-2 bg-primary/10 px-2 py-1.5 rounded-lg w-full">
-                            <Avatar
-                              icon={BookOpen}
-                              bgColor="bg-primary/20"
-                              textColor="text-primary"
-                            />
-                            <span className="text-sm font-medium text-primary truncate flex-1">
-                              {selectedClass.mainClass.name}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                updateClass(selectedClass.id, null);
-                              }}
-                              className="text-primary/70 hover:text-primary ml-1 p-1 transition-colors"
-                            >
-                              <X size={16} />
-                            </button>
-                          </div>
-                        ) : (
-                          <>
-                            <Search
-                              size={16}
-                              className="text-muted-foreground mr-2 shrink-0"
-                            />
-                            <input
-                              type="text"
-                              placeholder="Select Course..."
-                              value={
-                                activeDropdown === `class-${selectedClass.id}`
-                                  ? searchQueries.class
-                                  : ""
-                              }
-                              onChange={(e) =>
-                                handleSearchChange(
-                                  "class",
-                                  e.target.value,
-                                  `class-${selectedClass.id}`,
-                                )
-                              }
-                              className="flex-1 bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground text-sm w-full truncate"
-                            />
-                          </>
-                        )}
-                        {!selectedClass.mainClass && (
-                          <ChevronDown
-                            className="absolute right-4 text-muted-foreground pointer-events-none"
-                            size={18}
-                          />
-                        )}
-                      </div>
+                {selectedClasses.map(
+                  (selectedClass, index) => (
+                    <motion.div
+                      key={selectedClass.id}
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="flex flex-col sm:flex-row gap-4 items-start"
+                    >
+                      {/* Course Selection */}
+                      <div className="relative dropdown-container flex-1 w-full">
+                        <div
+                          className="relative flex items-center w-full min-h-[50px] px-4 py-2 rounded-xl border border-border bg-background focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary transition-all shadow-sm cursor-text"
+                          onClick={() =>
+                            setActiveDropdown(
+                              `class-${selectedClass.id}`
+                            )
+                          }
+                        >
+                          {selectedClass.mainClass ? (
+                            <div className="flex items-center gap-2 bg-primary/10 px-2 py-1.5 rounded-lg w-full">
+                              <Avatar
+                                icon={BookOpen}
+                                bgColor="bg-primary/20"
+                                textColor="text-primary"
+                              />
 
-                      <AnimatePresence>
-                        {activeDropdown === `class-${selectedClass.id}` &&
-                          !selectedClass.mainClass && (
-                            <motion.div
-                              initial={{ opacity: 0, y: -5 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -5 }}
-                              className="absolute z-50 w-full mt-2 bg-card border border-border rounded-xl shadow-xl max-h-60 overflow-y-auto custom-scrollbar"
-                            >
-                              {availableClasses
-                                .filter((c) =>
+                              <span className="text-sm font-medium text-primary truncate flex-1">
+                                {selectedClass.mainClass.name}
+                              </span>
+
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  updateClass(
+                                    selectedClass.id,
+                                    null
+                                  );
+                                }}
+                                className="text-primary/70 hover:text-primary ml-1 p-1 transition-colors"
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+                          ) : (
+                            <>
+                              <Search
+                                size={16}
+                                className="text-muted-foreground mr-2 shrink-0"
+                              />
+
+                              <input
+                                type="text"
+                                placeholder="Select Course..."
+                                value={
+                                  activeDropdown ===
+                                  `class-${selectedClass.id}`
+                                    ? searchQueries.class
+                                    : ""
+                                }
+                                onChange={(e) =>
+                                  handleSearchChange(
+                                    "class",
+                                    e.target.value,
+                                    `class-${selectedClass.id}`
+                                  )
+                                }
+                                className="flex-1 bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground text-sm w-full truncate"
+                              />
+                            </>
+                          )}
+
+                          {!selectedClass.mainClass && (
+                            <ChevronDown
+                              className="absolute right-4 text-muted-foreground pointer-events-none"
+                              size={18}
+                            />
+                          )}
+                        </div>
+
+                        <AnimatePresence>
+                          {activeDropdown ===
+                            `class-${selectedClass.id}` &&
+                            !selectedClass.mainClass && (
+                              <motion.div
+                                initial={{
+                                  opacity: 0,
+                                  y: -5,
+                                }}
+                                animate={{
+                                  opacity: 1,
+                                  y: 0,
+                                }}
+                                exit={{
+                                  opacity: 0,
+                                  y: -5,
+                                }}
+                                className="absolute z-50 w-full mt-2 bg-card border border-border rounded-xl shadow-xl max-h-60 overflow-y-auto custom-scrollbar"
+                              >
+                                {getAvailableClasses(
+                                  selectedClass.id
+                                )
+                                  .filter((c) =>
+                                    c.name
+                                      ?.toLowerCase()
+                                      .includes(
+                                        searchQueries.class.toLowerCase()
+                                      )
+                                  )
+                                  .map((cls) => (
+                                    <div
+                                      key={cls._id}
+                                      onClick={() =>
+                                        updateClass(
+                                          selectedClass.id,
+                                          cls
+                                        )
+                                      }
+                                      className="px-4 py-3 hover:bg-muted/50 cursor-pointer flex items-center gap-3 transition-colors border-b last:border-0 border-border/50"
+                                    >
+                                      <Avatar
+                                        icon={BookOpen}
+                                        bgColor="bg-primary/20"
+                                        textColor="text-primary"
+                                      />
+
+                                      <div className="flex-1">
+                                        <p className="text-sm font-medium text-foreground">
+                                          {cls.name}
+                                        </p>
+
+                                        <p className="text-xs text-muted-foreground">
+                                          {cls.code}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  ))}
+
+                                {getAvailableClasses(
+                                  selectedClass.id
+                                ).filter((c) =>
                                   c.name
                                     ?.toLowerCase()
                                     .includes(
-                                      searchQueries.class.toLowerCase(),
-                                    ),
-                                )
-                                .map((cls) => (
-                                  <div
-                                    key={cls._id}
-                                    onClick={() =>
-                                      updateClass(selectedClass.id, cls)
-                                    }
-                                    className="px-4 py-3 hover:bg-muted/50 cursor-pointer flex items-center gap-3 transition-colors border-b last:border-0 border-border/50"
-                                  >
-                                    <Avatar
-                                      icon={BookOpen}
-                                      bgColor="bg-primary/20"
-                                      textColor="text-primary"
-                                    />
-                                    <div className="flex-1">
-                                      <p className="text-sm font-medium text-foreground">
-                                        {cls.name}
-                                      </p>
-                                      <p className="text-xs text-muted-foreground">
-                                        {cls.code}
-                                      </p>
-                                    </div>
+                                      searchQueries.class.toLowerCase()
+                                    )
+                                ).length === 0 && (
+                                  <div className="px-4 py-3 text-sm text-muted-foreground text-center">
+                                    No matching classes found.
                                   </div>
-                                ))}
-                              {availableClasses.length === 0 && (
-                                <div className="px-4 py-3 text-sm text-muted-foreground text-center">
-                                  No matching classes found.
-                                </div>
-                              )}
-                            </motion.div>
-                          )}
-                      </AnimatePresence>
-                    </div>
+                                )}
+                              </motion.div>
+                            )}
+                        </AnimatePresence>
+                      </div>
 
-                    {/* Remove Course Button */}
-                    <button
-                      type="button"
-                      onClick={() => removeClass(selectedClass.id)}
-                      disabled={selectedClasses.length === 1}
-                      className="mt-1 sm:mt-0 p-3.5 rounded-xl border border-border bg-background text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shrink-0 w-full sm:w-auto h-[50px]"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </motion.div>
-                ))}
+                      {/* Remove Course Button */}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          removeClass(selectedClass.id)
+                        }
+                        disabled={selectedClasses.length === 1}
+                        className="mt-1 sm:mt-0 p-3.5 rounded-xl border border-border bg-background text-muted-foreground hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shrink-0 w-full sm:w-auto h-[50px]"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </motion.div>
+                  )
+                )}
               </AnimatePresence>
             </div>
 
@@ -474,7 +589,8 @@ const CreateBatch = () => {
               onClick={addClass}
               className="mt-4 flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary/80 transition-colors px-2 py-1 rounded-lg hover:bg-primary/10"
             >
-              <Plus size={16} /> Add More
+              <Plus size={16} />
+              Add More
             </button>
           </div>
 

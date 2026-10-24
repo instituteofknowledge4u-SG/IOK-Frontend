@@ -1431,7 +1431,8 @@ const AttendancePage = () => {
                                       {batch?.name || "Unnamed Batch"}
                                     </h3>
 
-                                    <span className="px-2 py-0.5 text-[10px] font-bold rounded-md uppercase tracking-wider border bg-primary/10 text-primary border-primary/20 shrink-0">
+                                    {/* <span className="px-2 py-0.5 text-[10px] font-bold rounded-md uppercase tracking-wider border bg-primary/10 text-primary border-primary/20 shrink-0"> */}
+                                    <span className="px-2 py-0.5 text-[12px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 rounded-md uppercase tracking-wider shrink-0">
                                       {batch?.weekday || "No Day"}
                                     </span>
                                   </div>

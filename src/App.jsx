@@ -20,7 +20,6 @@ import { NavigationLayout } from "./components/UI/NavigationLayout";
 import ProfilePage from "./pages/ProfilePage";
 import CoursesPage from "./pages/Admin/CoursesPage";
 import CreateCourse from "./pages/Admin/CreateCourse";
-import AddNewStudent from "./pages/Admin/AddNewStudent";
 import AttendancePage from "./pages/AttendancePage";
 import AttendanceStatus from "./pages/AttendanceStatus";
 import RegisterNewUser from "./pages/RegisterNewUser";
@@ -97,8 +96,14 @@ const App = () => {
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/profile" element={<ProfilePage />} />
                   <Route path="/profile/:username" element={<ProfilePage />} />
-                  <Route path="/teachers/profile/:username" element={<ProfilePage />} />
-                  <Route path="/students/profile/:username" element={<ProfilePage />} />
+                  <Route
+                    path="/teachers/profile/:username"
+                    element={<ProfilePage />}
+                  />
+                  <Route
+                    path="/students/profile/:username"
+                    element={<ProfilePage />}
+                  />
 
                   {/* SHARED ROUTES NOW PLACED HERE */}
                   <Route
@@ -169,15 +174,20 @@ const App = () => {
                       element={<CourseDetails />}
                     />
 
-                    <Route path="createcourse" element={<CreateCourse />} />
-                    <Route path="addnewstudent" element={<AddNewStudent />} />
+                    <Route
+                      path="/courses/createcourse"
+                      element={<CreateCourse />}
+                    />
                   </Route>
                   <Route path="/registeruser" element={<RegisterNewUser />} />
                   <Route path="/trades" element={<TradeManagement />} />
 
                   {/* BATCH MANAGEMENT ROUTES */}
                   <Route path="/batches/create" element={<CreateBatch />} />
-                  <Route path="/batches/edit" element={<EditBatch />} />
+                  <Route
+                    path="/batches/:batchName/edit"
+                    element={<EditBatch />}
+                  />
                 </Route>
 
                 {/* ==========================================

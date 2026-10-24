@@ -1,150 +1,359 @@
 @import "tailwindcss";
+
 @custom-variant dark (&:where(.dark, .dark *));
 
-:root {
-  /* Base Colors */
-  --background: #ffffff;
-  --foreground: #0f172a;
+/* =========================================
+   LIGHT MODE — PREMIUM SAAS DESIGN
+========================================= */
 
-  /* Primary Brand (Indigo) */
+:root {
+  color-scheme: light;
+
+  /* Backgrounds */
+  --background: #f8faff;
+  --foreground: #172033;
+
+  /* Primary Brand */
   --primary: #4f46e5;
   --primary-foreground: #ffffff;
 
   /* Cards & Surfaces */
-  --card: #f8fafc;
-  --card-foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #172033;
 
   /* Borders */
-  --border: #e2e8f0;
+  --border: #e5e9f2;
 
-  /* Secondary/Muted styles (Slate) */
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-
-  /* Accents & Hovers (Light Indigo) */
-  --accent: #e0e7ff;
-  --accent-foreground: #3730a3;
-
-  /* Error/Destructive states (Red) */
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-
-  /* Success states (Emerald) */
-  --success: #10b981;
-  --success-foreground: #ffffff;
-
-  /* Warning states (Amber) */
-  --warning: #f59e0b;
-  --warning-foreground: #ffffff;
-}
-
-.dark {
-  /* Base Colors - Deep neutral charcoal */
-  --background: #131314;
-  --foreground: #e3e3e3;
-
-  /* Primary Brand */
-  --primary: #e3e3e3;
-  --primary-foreground: #131314;
-
-  /* Cards & Surfaces */
-  --card: #1e1f20;
-  --card-foreground: #e3e3e3;
-
-  /* Borders */
-  --border: #444746;
-
-  /* Secondary/Muted styles */
-  --muted: #282a2c;
-  --muted-foreground: #8e918f;
+  /* Secondary / Muted */
+  --muted: #f1f4fa;
+  --muted-foreground: #647087;
 
   /* Accents & Hovers */
-  --accent: #333538;
-  --accent-foreground: #ffffff;
+  --accent: #eef2ff;
+  --accent-foreground: #3730a3;
 
-  /* Error/Destructive states */
-  --destructive: #f28b82;
-  --destructive-foreground: #3c0603;
+  /* =======================================
+     SEMANTIC STATUS COLORS
+     Status hues remain consistent in both
+     light and dark modes.
+  ======================================= */
 
-  /* Success states */
-  --success: #81c995;
-  --success-foreground: #0d381e;
+  /* Success — Green */
+  --success: #059669;
+  --success-foreground: #ffffff;
+  --success-bg: #ecfdf5;
+  --success-text: #065f46;
+  --success-border: #a7f3d0;
 
-  /* Warning states (Amber/Yellow for dark mode) */
-  --warning: #fde293;
-  --warning-foreground: #5c3a21;
+  /* Warning — Amber */
+  --warning: #d97706;
+  --warning-foreground: #ffffff;
+  --warning-bg: #fffbeb;
+  --warning-text: #92400e;
+  --warning-border: #fde68a;
+
+  /* Destructive / Error — Red */
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --destructive-bg: #fef2f2;
+  --destructive-text: #991b1b;
+  --destructive-border: #fecaca;
+
+  /* Info — Blue */
+  --info: #2563eb;
+  --info-foreground: #ffffff;
+  --info-bg: #eff6ff;
+  --info-text: #1e40af;
+  --info-border: #bfdbfe;
+
+  /* Inputs & Focus */
+  --ring: #6366f1;
+  --input: #dce3ef;
+
+  /* Sidebar */
+  --sidebar: #ffffff;
+  --sidebar-foreground: #172033;
+  --sidebar-accent: #eef2ff;
+  --sidebar-border: #e8ecf4;
+
+  /* Typography */
+  --font-sans:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+
+  /* Premium Surface Tokens */
+  --surface-soft: #f3f6fc;
+  --surface-tint: #f5f7ff;
+  --shadow-color: 15 23 42;
 }
 
+/* =========================================
+   DARK MODE — PURE BLACK THEME
+========================================= */
+
+.dark {
+  color-scheme: dark;
+
+  /* Backgrounds */
+  --background: #000000;
+  --foreground: #ffffff;
+
+  /* Primary Brand */
+  --primary: #ffffff;
+  --primary-foreground: #000000;
+
+  /* Cards & Surfaces */
+  --card: #000000;
+  --card-foreground: #ffffff;
+
+  /* Borders */
+  --border: #262626;
+
+  /* Secondary / Muted */
+  --muted: #0a0a0a;
+  --muted-foreground: #a3a3a3;
+
+  /* Accents & Hovers */
+  --accent: #171717;
+  --accent-foreground: #ffffff;
+
+  /* =======================================
+     SEMANTIC STATUS COLORS
+     Hue stays the same as light mode.
+     Backgrounds, text and borders adapt.
+  ======================================= */
+
+  /* Success — Green */
+  --success: #059669;
+  --success-foreground: #ffffff;
+  --success-bg: #052e24;
+  --success-text: #6ee7b7;
+  --success-border: #065f46;
+
+  /* Warning — Amber */
+  --warning: #d97706;
+  --warning-foreground: #ffffff;
+  --warning-bg: #451a03;
+  --warning-text: #fcd34d;
+  --warning-border: #92400e;
+
+  /* Destructive / Error — Red */
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --destructive-bg: #450a0a;
+  --destructive-text: #fca5a5;
+  --destructive-border: #991b1b;
+
+  /* Info — Blue */
+  --info: #2563eb;
+  --info-foreground: #ffffff;
+  --info-bg: #172554;
+  --info-text: #93c5fd;
+  --info-border: #1e40af;
+
+  /* Inputs & Focus */
+  --ring: #ffffff;
+  --input: #262626;
+
+  /* Sidebar */
+  --sidebar: #000000;
+  --sidebar-foreground: #ffffff;
+  --sidebar-accent: #111111;
+  --sidebar-border: #202020;
+
+  /* Surface Tokens */
+  --surface-soft: #0a0a0a;
+  --surface-tint: #111111;
+  --shadow-color: 0 0 0;
+}
+
+/* =========================================
+   TAILWIND CSS V4 THEME TOKENS
+========================================= */
+
 @theme {
+  /* Core */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
+  /* Primary */
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
 
+  /* Cards */
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
 
+  /* Borders */
   --color-border: var(--border);
 
+  /* Muted */
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
 
+  /* Accent */
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
 
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
+  /* =======================================
+     SUCCESS
+  ======================================= */
 
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-success-bg: var(--success-bg);
+  --color-success-text: var(--success-text);
+  --color-success-border: var(--success-border);
+
+  /* =======================================
+     WARNING
+  ======================================= */
 
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
+  --color-warning-bg: var(--warning-bg);
+  --color-warning-text: var(--warning-text);
+  --color-warning-border: var(--warning-border);
+
+  /* =======================================
+     DESTRUCTIVE / ERROR
+  ======================================= */
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-bg: var(--destructive-bg);
+  --color-destructive-text: var(--destructive-text);
+  --color-destructive-border: var(--destructive-border);
+
+  /* =======================================
+     INFO
+  ======================================= */
+
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-info-bg: var(--info-bg);
+  --color-info-text: var(--info-text);
+  --color-info-border: var(--info-border);
+
+  /* Inputs & Focus */
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+
+  /* Sidebar */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-border: var(--sidebar-border);
+
+  /* Surfaces */
+  --color-surface-soft: var(--surface-soft);
+  --color-surface-tint: var(--surface-tint);
+
+  /* Typography */
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
 }
 
-@layer utilities {
-  .custom-scrollbar {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(156, 163, 175, 0.3) transparent;
-  }
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 4px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(156, 163, 175, 0.3);
-    border-radius: 10px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(156, 163, 175, 0.5);
-  }
-
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-}
+/* =========================================
+   BASE STYLES
+========================================= */
 
 @layer base {
+  *,
+  *::before,
+  *::after {
+    border-color: var(--border);
+  }
+
+  html {
+    min-height: 100%;
+    scroll-behavior: smooth;
+    scrollbar-gutter: stable;
+  }
+
   body {
+    min-height: 100vh;
+    margin: 0;
+
     background-color: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans);
+
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 
-    /* Global scrollbar for Firefox */
+    transition:
+      background-color 180ms ease,
+      color 180ms ease;
+
     scrollbar-width: thin;
     scrollbar-color: var(--border) transparent;
   }
 
-  /* Global scrollbar for Webkit (Chrome, Edge, Safari) */
+  ::selection {
+    background: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  button {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  /* Form Controls */
+
+  input,
+  textarea,
+  select {
+    color: var(--foreground);
+    background-color: var(--card);
+    border-color: var(--input);
+
+    transition:
+      border-color 160ms ease,
+      box-shadow 160ms ease,
+      background-color 160ms ease;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--muted-foreground);
+    opacity: 0.8;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    border-color: var(--ring);
+
+    box-shadow:
+      0 0 0 3px
+      color-mix(in srgb, var(--ring) 13%, transparent);
+
+    outline: none;
+  }
+
+  /* Browser Scrollbars */
+
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
@@ -156,10 +365,204 @@
 
   ::-webkit-scrollbar-thumb {
     background: var(--border);
-    border-radius: 10px;
+    border: 2px solid var(--background);
+    border-radius: 999px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
     background: var(--muted-foreground);
+  }
+}
+
+/* =========================================
+   CUSTOM UTILITIES
+========================================= */
+
+@layer utilities {
+  /* Scrollbar */
+
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 999px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--muted-foreground);
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* =======================================
+     ELEVATED CARDS
+  ======================================= */
+
+  .surface-elevated {
+    background: var(--card);
+    border: 1px solid var(--border);
+
+    box-shadow:
+      0 1px 2px rgb(var(--shadow-color) / 3%),
+      0 4px 12px rgb(var(--shadow-color) / 3%);
+
+    border-radius: 14px;
+
+    transition:
+      border-color 180ms ease,
+      box-shadow 180ms ease,
+      transform 180ms ease;
+  }
+
+  .surface-elevated:hover {
+    border-color: color-mix(
+      in srgb,
+      var(--primary) 20%,
+      var(--border)
+    );
+
+    box-shadow:
+      0 2px 4px rgb(var(--shadow-color) / 4%),
+      0 8px 24px rgb(var(--shadow-color) / 6%);
+  }
+
+  /* =======================================
+     BRAND BUTTON
+  ======================================= */
+
+  .btn-monochrome {
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border: 1px solid var(--primary);
+    border-radius: 10px;
+    font-weight: 600;
+
+    transition:
+      opacity 180ms ease,
+      background-color 180ms ease,
+      box-shadow 180ms ease,
+      transform 180ms ease;
+  }
+
+  .btn-monochrome:hover {
+    opacity: 0.94;
+
+    box-shadow:
+      0 4px 12px
+      color-mix(in srgb, var(--primary) 20%, transparent);
+  }
+
+  .btn-monochrome:active {
+    transform: translateY(1px);
+  }
+
+  /* =======================================
+     HOVER SURFACES
+  ======================================= */
+
+  .hover-surface {
+    transition:
+      background-color 160ms ease,
+      color 160ms ease,
+      border-color 160ms ease;
+  }
+
+  .hover-surface:hover {
+    background: var(--accent);
+    color: var(--accent-foreground);
+  }
+
+  /* =======================================
+     BACKGROUND HELPERS
+  ======================================= */
+
+  .surface-soft {
+    background: var(--surface-soft);
+  }
+
+  .surface-tint {
+    background: var(--surface-tint);
+  }
+
+  /* =======================================
+     SHADOWS
+  ======================================= */
+
+  .shadow-surface {
+    box-shadow:
+      0 1px 3px rgb(var(--shadow-color) / 4%),
+      0 6px 20px rgb(var(--shadow-color) / 5%);
+  }
+
+  /* =======================================
+     FOCUS
+  ======================================= */
+
+  .focus-monochrome:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+  }
+
+  /* =======================================
+     STATUS SURFACES
+     Use these for alerts, badges and messages.
+  ======================================= */
+
+  .status-success {
+    color: var(--success-text);
+    background: var(--success-bg);
+    border: 1px solid var(--success-border);
+  }
+
+  .status-warning {
+    color: var(--warning-text);
+    background: var(--warning-bg);
+    border: 1px solid var(--warning-border);
+  }
+
+  .status-destructive {
+    color: var(--destructive-text);
+    background: var(--destructive-bg);
+    border: 1px solid var(--destructive-border);
+  }
+
+  .status-info {
+    color: var(--info-text);
+    background: var(--info-bg);
+    border: 1px solid var(--info-border);
+  }
+}
+
+/* =========================================
+   ACCESSIBILITY — REDUCED MOTION
+========================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
